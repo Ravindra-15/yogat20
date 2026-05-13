@@ -1,30 +1,11 @@
 // Zealtho Programs - Select Tenure
 // Plan picker between landing PricingSection and ProgramCheckout
-// Prices must match backend programPrices in customer.program.controller.js
+// Plans fetched dynamically from API (admin-configured pricing)
 
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
-const tenureOptions = [
-  {
-    id: "12months",
-    label: "12 Months",
-    price: 84,
-    original: 504,
-    discount: "84% Off",
-    tenure: "12",
-    bestseller: true,
-  },
-  {
-    id: "3months",
-    label: "3 Months",
-    price: 45,
-    original: 90,
-    discount: "50% Off",
-    tenure: "3",
-    bestseller: false,
-  },
-];
+import { getProgramPlans } from "../../../services/programPlanService";
 
 const programNames = {
   yogat20: "Yoga T20",
@@ -38,16 +19,44 @@ export default function SelectTenure() {
   const navigate = useNavigate();
   const programName = programNames[id] || id;
 
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔒 Subscription guard (existing logic preserved)
   useEffect(() => {
     const redirect = getSubscriptionRedirect(`/programs/${id}/tenure`);
     if (redirect) navigate(redirect, { replace: true });
   }, [id, navigate]);
 
-  const handleSelect = (option) => {
+  // 📥 Load plans
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        // Subscription flow shows ALL active plans (not just landing-visible)
+        const fetched = await getProgramPlans(id);
+        // const fetched = await getProgramPlans(id, { landingOnly: true });
+        if (!mounted) return;
+        setPlans(fetched);
+      } catch (err) {
+        console.error("Failed to load plans:", err);
+        if (mounted) setPlans([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  const handleSelect = (plan) => {
     navigate(`/programs/${id}/checkout`, {
       state: {
-        tenure: option.label,
-        price: option.price,
+        tenure: plan.planName,
+        price: plan.offerPrice,
         programId: id,
         programName,
       },
@@ -68,52 +77,82 @@ export default function SelectTenure() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {tenureOptions.map((option) => (
-            <div
-              key={option.id}
-              className={`relative border rounded-2xl p-5 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer ${
-                option.bestseller
-                  ? "border-orange-300 bg-orange-50/30"
-                  : "border-gray-200"
-              }`}
-              onClick={() => handleSelect(option)}
+        {/* Loading state */}
+        {loading ? (
+          <p className="text-center text-sm text-gray-400 py-10">
+            Loading plans...
+          </p>
+        ) : plans.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500 mb-4">
+              No plans available right now. Please check back soon.
+            </p>
+            <button
+              onClick={() => navigate(`/programs/${id}`)}
+              className="text-sm text-orange-500 hover:underline font-medium"
             >
-              {option.bestseller && (
-                <div className="absolute -top-2 left-4 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-                  ★ Bestseller
+              ← Back to program
+            </button>
+          </div>
+        ) : (
+          <div
+            className={`grid gap-4 ${
+              plans.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
+            }`}
+          >
+            {plans.map((plan, idx) => {
+              const isBestseller = plan.isBestseller || idx === 0;
+              return (
+                <div
+                  key={plan._id}
+                  className={`relative border rounded-2xl p-5 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer flex flex-col ${
+                    isBestseller
+                      ? "border-orange-300 bg-orange-50/30"
+                      : "border-gray-200"
+                  }`}
+                  onClick={() => handleSelect(plan)}
+                >
+                  {isBestseller && (
+                    <div className="absolute -top-2 left-4 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                      ★ Bestseller
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mb-2 mt-1">
+                    <span className="font-semibold text-gray-800 text-base">
+                      {plan.planName}
+                    </span>
+                    {plan.offerBadge && (
+                      <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                        {plan.offerBadge}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-gray-400 line-through mb-1 min-h-[16px]">
+                    {plan.originalPrice > plan.offerPrice
+                      ? `$ ${plan.originalPrice}`
+                      : "\u00A0"}
+                  </p>
+
+                  <p className="text-2xl font-bold text-gray-800 mb-4">
+                    $ {plan.offerPrice}
+                  </p>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelect(plan);
+                    }}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.35)] mt-auto"
+                  >
+                    Select Plan
+                  </button>
                 </div>
-              )}
-
-              <div className="flex items-center justify-between mb-2 mt-1">
-                <span className="font-semibold text-gray-800 text-base">
-                  {option.label}
-                </span>
-                <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-                  {option.discount}
-                </span>
-              </div>
-
-              <p className="text-xs text-gray-400 line-through mb-1">
-                $ {option.original}
-              </p>
-
-              <p className="text-2xl font-bold text-gray-800 mb-4">
-                $ {option.price}
-              </p>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelect(option);
-                }}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.35)]"
-              >
-                Select Plan
-              </button>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

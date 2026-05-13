@@ -1,10 +1,12 @@
 // Yoga T20 - Pricing Section
-// Routes "Buy now" through subscription gate (signup/login/profile/checkout)
-// Prices reflect 12 Months $84 ($7/mo) and 3 Months $45 ($15/mo) per figma
+// Now fetches plans dynamically from API (admin-configured pricing)
+// Shows top 2 plans marked visible on landing, with the first as bestseller
 
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { getSubscriptionRedirect } from "../../../../utils/subscriptionGuard";
+import { getProgramPlans } from "../../../../services/programPlanService";
 
 const features = [
   "Online Yoga",
@@ -23,34 +25,56 @@ const features = [
   "Flexible Batch timings",
 ];
 
-const plans = [
-  {
-    id: "12months",
-    label: "12 Months",
-    price: 7,
-    original: 84,
-    discount: "84% Off",
-    bestseller: true,
-    highlight: true,
-    tenure: "12",
-  },
-  {
-    id: "3months",
-    label: "3 Months",
-    price: 15,
-    original: 40,
-    discount: null,
-    bestseller: false,
-    highlight: false,
-    tenure: "3",
-  },
-];
+const PROGRAM_ID = "yogat20";
+
+// 💵 Format helper
+const formatPrice = (n) => `$${Number(n || 0).toLocaleString("en-US")}`;
+
+// 📅 Monthly price helper — for "$/month" display
+const calcMonthlyPrice = (plan) => {
+  const months = plan.durationMonths || parseMonths(plan.planName) || 1;
+  if (months <= 0) return plan.offerPrice;
+  return Math.round(plan.offerPrice / months);
+};
+
+const parseMonths = (planName) => {
+  if (!planName) return null;
+  const m = String(planName).match(/(\d+)\s*month/i);
+  return m ? parseInt(m[1], 10) : null;
+};
 
 export default function PricingSection() {
   const navigate = useNavigate();
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleBuy = (programId, tenure) => {
-    const intendedPath = `/programs/${programId}/tenure`;
+  // 📥 Fetch plans on mount
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const fetched = await getProgramPlans(PROGRAM_ID, {
+          landingOnly: true,
+        });
+        if (!mounted) return;
+        // Take only top 2 plans (landing shows max 2)
+        setPlans(fetched.slice(0, 2));
+      } catch (err) {
+        console.error("Failed to load plans:", err);
+        if (mounted) setPlans([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleBuy = (planName) => {
+    const intendedPath = `/programs/${PROGRAM_ID}/tenure`;
     const redirect = getSubscriptionRedirect(intendedPath);
     navigate(redirect || intendedPath);
   };
@@ -61,7 +85,8 @@ export default function PricingSection() {
         {/* HEADING */}
         <div className="text-center mb-10">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-            Simple, <span className="text-orange-500">transparent pricing</span>
+            Simple,{" "}
+            <span className="text-orange-500">transparent pricing</span>
           </h2>
 
           <p className="text-gray-500 text-sm sm:text-base">
@@ -70,103 +95,140 @@ export default function PricingSection() {
         </div>
 
         {/* PRICING CARDS */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-4">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative rounded-[28px] border transition-all duration-300 w-full md:w-[330px] min-h-[205px] px-6 py-5 flex flex-col ${
-                plan.highlight
-                  ? "bg-[#0F5A53] border-[#0F5A53] text-white shadow-md"
-                  : "bg-white border-gray-200 text-gray-800 shadow-sm"
-              }`}
-            >
-              {/* Bestseller */}
-              <div className="min-h-[24px] mb-4">
-                {plan.bestseller && (
-                  <div className="flex items-center gap-1 text-yellow-400 text-xs font-semibold">
-                    <span>★</span>
-                    <span>Bestseller</span>
+        {loading ? (
+          <div className="flex justify-center mb-4">
+            <p className="text-sm text-gray-400 py-10">Loading plans...</p>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="flex justify-center mb-4">
+            <p className="text-sm text-gray-400 py-10">
+              No plans available right now. Please check back soon.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-4">
+            {plans.map((plan, idx) => {
+              const isBestseller = plan.isBestseller || idx === 0;
+              const monthlyPrice = calcMonthlyPrice(plan);
+
+              return (
+                <div
+                  key={plan._id}
+                  className={`relative rounded-[28px] border transition-all duration-300 w-full md:w-[330px] min-h-[205px] px-6 py-5 flex flex-col ${
+                    isBestseller
+                      ? "bg-[#0F5A53] border-[#0F5A53] text-white shadow-md"
+                      : "bg-white border-gray-200 text-gray-800 shadow-sm"
+                  }`}
+                >
+                  {/* Bestseller badge */}
+                  <div className="min-h-[24px] mb-4">
+                    {isBestseller && (
+                      <div className="flex items-center gap-1 text-yellow-400 text-xs font-semibold">
+                        <span>★</span>
+                        <span>Bestseller</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Top Row */}
-              <div className="flex items-start justify-between mb-2">
-                <h3
-                  className={`text-[20px] leading-none font-bold ${
-                    plan.highlight ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {plan.label}
-                </h3>
+                  {/* Top row: name + offer badge */}
+                  <div className="flex items-start justify-between mb-2">
+                    <h3
+                      className={`text-[20px] leading-none font-bold ${
+                        isBestseller ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {plan.planName}
+                    </h3>
 
-                {plan.discount && (
-                  <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-md">
-                    {plan.discount}
-                  </span>
-                )}
-              </div>
+                    {plan.offerBadge && (
+                      <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-md">
+                        {plan.offerBadge}
+                      </span>
+                    )}
+                  </div>
 
-              {/* Original Price */}
-              <p
-                className={`text-sm line-through mb-2 ${
-                  plan.highlight ? "text-teal-200" : "text-gray-400"
-                }`}
-              >
-                ${plan.original}
-              </p>
+                  {/* Original price (struck-through) */}
+                  {plan.originalPrice > plan.offerPrice && (
+                    <p
+                      className={`text-sm line-through mb-2 ${
+                        isBestseller ? "text-teal-200" : "text-gray-400"
+                      }`}
+                    >
+                      {formatPrice(plan.originalPrice)}
+                    </p>
+                  )}
 
-              {/* Price */}
-              <div className="mb-6">
-                <span
-                  className={`text-[28px] font-extrabold leading-none ${
-                    plan.highlight ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  ${plan.price}
-                </span>
+                  {/* Monthly price */}
+                  <div className="mb-6">
+                    <span
+                      className={`text-[28px] font-extrabold leading-none ${
+                        isBestseller ? "text-white" : "text-gray-900"
+                      }`}
+                    >
+                      {formatPrice(monthlyPrice)}
+                    </span>
 
-                <span
-                  className={`ml-2 text-sm font-medium ${
-                    plan.highlight ? "text-gray-100" : "text-gray-600"
-                  }`}
-                >
-                  / month
-                </span>
-              </div>
+                    <span
+                      className={`ml-2 text-sm font-medium ${
+                        isBestseller ? "text-gray-100" : "text-gray-600"
+                      }`}
+                    >
+                      / month
+                    </span>
+                  </div>
 
-              {/* Buy button */}
-              <div className="mt-auto">
-                <button
-                  onClick={() => handleBuy("yogat20", plan.tenure)}
-                  className="w-full h-10 text-xs rounded-xl bg-orange-500 hover:bg-orange-600 transition-all text-white text-sm font-semibold shadow-md"
-                >
-                  Buy now !
-                </button>
-              </div>
+                  {/* Buy button */}
+                  <div className="mt-auto">
+                    <button
+                      onClick={() => handleBuy(plan.planName)}
+                      className="w-full h-10 text-xs rounded-xl bg-orange-500 hover:bg-orange-600 transition-all text-white text-sm font-semibold shadow-md"
+                    >
+                      Buy now !
+                    </button>
+                  </div>
 
-              {/* Corner Dot */}
-              {plan.highlight && (
-                <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-orange-500" />
-              )}
-            </div>
-          ))}
-        </div>
+                  {/* Corner dot for bestseller */}
+                  {isBestseller && (
+                    <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-orange-500" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-        {/* COMPARISON TABLE */}
+        {/* COMPARISON TABLE — features stay hardcoded as decided */}
         <div className="overflow-x-auto rounded-[28px] border border-gray-100 shadow-sm bg-white">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr>
                 <th className="text-left px-10 py-6 text-gray-400 font-normal w-[50%]" />
 
-                <th className="px-6 py-6 text-center font-bold text-[#0F5A53] bg-[#EAF7F5] text-[18px]">
-                  12 Month
-                </th>
+                {/* Dynamic header columns from fetched plans */}
+                {plans.map((plan, idx) => (
+                  <th
+                    key={plan._id}
+                    className={`px-6 py-6 text-center font-bold text-[18px] ${
+                      idx === 0
+                        ? "text-[#0F5A53] bg-[#EAF7F5]"
+                        : "text-gray-800"
+                    }`}
+                  >
+                    {plan.planName}
+                  </th>
+                ))}
 
-                <th className="px-6 py-6 text-center font-bold text-gray-800 text-[18px]">
-                  3 Month
-                </th>
+                {/* Fallback headers if no plans loaded */}
+                {plans.length === 0 && (
+                  <>
+                    <th className="px-6 py-6 text-center font-bold text-[#0F5A53] bg-[#EAF7F5] text-[18px]">
+                      12 Months
+                    </th>
+                    <th className="px-6 py-6 text-center font-bold text-gray-800 text-[18px]">
+                      3 Months
+                    </th>
+                  </>
+                )}
               </tr>
             </thead>
 
@@ -180,19 +242,25 @@ export default function PricingSection() {
                     {feature}
                   </td>
 
-                  <td className="px-6 py-4 text-center bg-[#EAF7F5] border-b border-[#D8EFEB]">
-                    <Check
-                      size={18}
-                      className="text-teal-600 mx-auto stroke-[3]"
-                    />
-                  </td>
-
-                  <td className="px-6 py-4 text-center border-b border-gray-100">
-                    <Check
-                      size={18}
-                      className="text-teal-600 mx-auto stroke-[3]"
-                    />
-                  </td>
+                  {/* Render a checkmark column per plan */}
+                  {(plans.length > 0
+                    ? plans
+                    : [{ _id: "fallback1" }, { _id: "fallback2" }]
+                  ).map((plan, idx) => (
+                    <td
+                      key={plan._id}
+                      className={`px-6 py-4 text-center border-b ${
+                        idx === 0
+                          ? "bg-[#EAF7F5] border-[#D8EFEB]"
+                          : "border-gray-100"
+                      }`}
+                    >
+                      <Check
+                        size={18}
+                        className="text-teal-600 mx-auto stroke-[3]"
+                      />
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
