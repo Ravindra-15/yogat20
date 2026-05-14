@@ -85,8 +85,7 @@ export default function PricingSection() {
         {/* HEADING */}
         <div className="text-center mb-10">
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
-            Simple,{" "}
-            <span className="text-orange-500">transparent pricing</span>
+            Simple, <span className="text-orange-500">transparent pricing</span>
           </h2>
 
           <p className="text-gray-500 text-sm sm:text-base">
@@ -147,17 +146,17 @@ export default function PricingSection() {
                     )}
                   </div>
 
-                  {/* Original price (struck-through) */}
-                  {plan.originalPrice > plan.offerPrice && (
-                    <p
-                      className={`text-sm line-through mb-2 ${
-                        isBestseller ? "text-teal-200" : "text-gray-400"
-                      }`}
-                    >
-                      {formatPrice(plan.originalPrice)}
-                    </p>
-                  )}
-
+                   
+                  {/* Original price (struck-through) — reserves space even when empty */}
+                  <p
+                    className={`text-sm line-through mb-2 min-h-[20px] ${
+                      isBestseller ? "text-teal-200" : "text-gray-400"
+                    }`}
+                  >
+                    {plan.originalPrice > plan.offerPrice
+                      ? formatPrice(plan.originalPrice)
+                      : "\u00A0"}
+                  </p>
                   {/* Monthly price */}
                   <div className="mb-6">
                     <span

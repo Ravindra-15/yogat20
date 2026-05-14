@@ -9,9 +9,11 @@ import OurStructureSection from "./sections/OurStructureSection";
 import WhatYouGetSection from "./sections/WhatYouGetSection";
 import PricingSection from "./sections/PricingSection";
 import HealingCTASection from "./sections/HealingCTASection";
+import ReviewsSection from "./sections/ReviewsSection";
 import ProgramsSection from "./sections/ProgramsSection";
 import FAQSection from "./sections/FAQSection";
 import CallbackSection from "./sections/CallbackSection";
+import ReferAndEarnSection from "./sections/ReferAndEarnSection";
 import WelcomePopup from "./components/WelcomePopup";
 
 export default function LandingPage() {
@@ -27,9 +29,11 @@ export default function LandingPage() {
         <WhatYouGetSection />
         <PricingSection />
         <HealingCTASection />
+        <ReviewsSection />
         <ProgramsSection />
         <FAQSection />
         <CallbackSection />
+        <ReferAndEarnSection />
       </main>
 
       <CustomerFooter />
