@@ -48,12 +48,27 @@ export const fetchDayAvailability = async (doctorId, date) => {
 // ============================================
 // 📝 CREATE BOOKING (auth)
 // ============================================
-export const createBooking = async ({ doctorId, scheduledAt, notes }) => {
-  const response = await authApi.post("/customer/appointments", {
-    doctorId,
-    scheduledAt,
-    notes,
-  });
+export const createBooking = async ({
+  doctorId,
+  scheduledAt,
+  notes,
+  platform,
+}) => {
+  
+  const payload = {
+  doctorId,
+  scheduledAt,
+  notes,
+  platform,
+};
+
+const response = await authApi.post("/customer/appointments", {
+  doctorId,
+  scheduledAt,
+  notes,
+  platform,
+});
+
   return response.data.data;
 };
 

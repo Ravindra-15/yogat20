@@ -105,6 +105,8 @@ const Checkout = () => {
       const result = await createBooking({
         doctorId: intent.doctorId,
         scheduledAt: intent.scheduledAt,
+        notes: "",
+        platform: "yogat20",
       });
 
       if (!isMountedRef.current) return;
