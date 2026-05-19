@@ -72,6 +72,7 @@ import Settings from "./pages/Doctor/Settings/Settings";
 function App() {
   return (
     <Router>
+      <div className="pt-16">
       <Routes>
         {/* ============================================ */}
         {/* 👤 CUSTOMER ROUTES */}
@@ -270,6 +271,7 @@ function App() {
         {/* ============================================ */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </div>
     </Router>
   );
 }
