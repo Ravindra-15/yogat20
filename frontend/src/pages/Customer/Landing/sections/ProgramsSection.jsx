@@ -56,10 +56,10 @@ const programs = [
 
 export default function ProgramsSection() {
   return (
-    <section id="programs" className="py-16 lg:py-24 bg-white scroll-mt-24">
-      <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-14">
+    <section id="programs" className="py-8 lg:py-12 bg-white scroll-mt-24">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-14">
         <div className="text-center mb-12 lg:mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-4xl font-bold text-[#0F172A] mb-3">
+          <h2 className="text-3xl sm:text-3xl lg:text-[40px] font-bold text-[#0F172A] mb-3">
             Tailored Programs{" "}
             <span className="text-orange-500">for you !</span>
           </h2>
@@ -77,11 +77,13 @@ export default function ProgramsSection() {
               <div
                 key={prog.id}
                 className={`
-                  relative overflow-hidden rounded-[36px]
+                  relative overflow-hidden rrounded-[28px] lg:rounded-[36px]
                   ${prog.bg}
-                  min-h-[240px] lg:min-h-[290px]
-                  flex flex-col lg:flex-row items-center
-                  px-6 py-6 lg:px-10 lg:py-0
+                  min-h-[300px]
+sm:min-h-[360px]
+lg:min-h-[300px]
+flex flex-col lg:flex-row justify-between
+px-5 py-7 sm:px-8 lg:px-12 lg:py-0
                 `}
               >
                 <div
@@ -111,11 +113,11 @@ export default function ProgramsSection() {
                   `}
                 >
                   <div className="max-w-[500px]">
-                    <h3 className="text-[30px] lg:text-[30px] font-bold text-[#0F172A] mb-4 leading-tight">
+                    <h3 className="text-[30px] lg:text-[35px] font-bold text-[#0F172A] mb-4 leading-tight">
                       {prog.title}
                     </h3>
 
-                    <p className="text-gray-600 text-sm lg:text-[16px] leading-relaxed mb-8">
+                    <p className="text-gray-600 text-sm sm:text-base lg:text-[19px] leading-relaxed mb-8">
                       {prog.subtitle}
                     </p>
 
