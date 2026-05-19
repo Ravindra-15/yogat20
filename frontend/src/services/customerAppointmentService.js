@@ -93,3 +93,19 @@ export const getMyAppointment = async (appointmentId) => {
   const response = await authApi.get(`/customer/appointments/${appointmentId}`);
   return response.data.data.appointment;
 };
+
+// ============================================
+// ❌ CANCEL MY APPOINTMENT
+// ============================================
+export const cancelMyAppointment = async (appointmentId) => {
+  const response = await authApi.patch(`/customer/appointments/${appointmentId}/cancel`);
+  return response.data.data.appointment;
+};
+
+// ============================================
+// ✅ MARK MY APPOINTMENT COMPLETE
+// ============================================
+export const markMyAppointmentComplete = async (appointmentId) => {
+  const response = await authApi.patch(`/customer/appointments/${appointmentId}/complete`);
+  return response.data.data.appointment;
+};

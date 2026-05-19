@@ -15,6 +15,9 @@ import ConsultationCard from "./components/ConsultationCard";
 
 import { getPublicDoctor } from "../../../services/customerDoctorService";
 import { createBooking } from "../../../services/customerAppointmentService";
+import { fetchMyProfile } from "../../../services/customerProfileService";
+import { Gift } from "lucide-react";
+
 import {
   isCustomerLoggedIn,
   buildLoginRedirect,
@@ -31,6 +34,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paying, setPaying] = useState(false);
+  const [freeCredits, setFreeCredits] = useState(0);
 
   const isMountedRef = useRef(false);
 
@@ -78,6 +82,15 @@ const Checkout = () => {
         const doc = await getPublicDoctor(parsed.doctorId);
         if (!isMountedRef.current) return;
         setDoctor(doc);
+        // 🎁 Check free credits
+        try {
+          const profile = await fetchMyProfile();
+          if (isMountedRef.current) {
+            setFreeCredits(profile?.freeAppointmentCredits || 0);
+          }
+        } catch (err) {
+          // soft fail
+        }
       } catch (err) {
         if (!isMountedRef.current) return;
         const msg = err?.response?.data?.message || "Failed to load checkout";
@@ -179,9 +192,27 @@ const Checkout = () => {
               <ConsultationCard
                 doctor={doctor}
                 scheduledAt={intent?.scheduledAt}
-                fee={BOOKING_FEE}
+                fee={freeCredits > 0 ? 0 : BOOKING_FEE}
                 showTotals
               />
+
+              {freeCredits > 0 && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <Gift size={18} className="text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-emerald-800">
+                      Free Appointment Credit Available
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-0.5">
+                      You have <strong>{freeCredits}</strong> free appointment
+                      credit{freeCredits > 1 ? "s" : ""}. This booking will use
+                      1 credit — no payment needed.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* 💳 Pay button */}
               <button
@@ -201,8 +232,10 @@ const Checkout = () => {
                 {paying ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    Processing payment…
+                    {freeCredits > 0 ? "Confirming…" : "Processing payment…"}
                   </>
+                ) : freeCredits > 0 ? (
+                  "Confirm Free Booking"
                 ) : (
                   `Pay $${BOOKING_FEE}`
                 )}

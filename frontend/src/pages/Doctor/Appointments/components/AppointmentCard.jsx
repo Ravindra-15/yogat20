@@ -12,6 +12,8 @@ import {
   Loader2,
   Send,
   Video,
+  X,
+  CheckCircle,
 } from "lucide-react";
 
 import toast from "react-hot-toast";
@@ -19,6 +21,8 @@ import toast from "react-hot-toast";
 import {
   setMeetingLink,
   sendMeetingLink,
+  cancelDoctorAppointment,
+  markAppointmentComplete,
 } from "../../../../services/doctorAppointmentService";
 
 // ============================================
@@ -51,9 +55,7 @@ const getInitials = (name) => {
     return parts[0].slice(0, 2).toUpperCase();
   }
 
-  return (
-    parts[0][0] + parts[parts.length - 1][0]
-  ).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
 // ============================================
@@ -70,16 +72,50 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
   } = appointment;
 
   const displayName =
-    user?.nickName ||
-    user?.fullName ||
-    patientName ||
-    "Patient";
+    user?.nickName || user?.fullName || patientName || "Patient";
 
   const phone = user?.phone || "";
 
   const [linkInput, setLinkInput] = useState(meetingLink || "");
   const [savingLink, setSavingLink] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [completing, setCompleting] = useState(false);
+
+  const status = appointment.status;
+
+  const canCancel = ["pending", "confirmed"].includes(status);
+  const canMarkComplete =
+    ["pending", "confirmed"].includes(status) && !!meetingLinkSentAt;
+
+  const handleCancelConfirm = async (reason) => {
+    try {
+      setCancelling(true);
+      const updated = await cancelDoctorAppointment(_id, reason);
+      toast.success("Appointment cancelled");
+      setCancelModalOpen(false);
+      onUpdated?.(updated);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to cancel");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      setCompleting(true);
+      const updated = await markAppointmentComplete(_id);
+      toast.success("Consultation marked complete");
+      onUpdated?.(updated);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to mark complete");
+    } finally {
+      setCompleting(false);
+    }
+  };
 
   // ============================================
   // 💾 SAVE LINK
@@ -90,18 +126,13 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
     try {
       setSavingLink(true);
 
-      const updated = await setMeetingLink(
-        _id,
-        linkInput.trim()
-      );
+      const updated = await setMeetingLink(_id, linkInput.trim());
 
       toast.success("Meeting link saved");
 
       onUpdated?.(updated);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        "Failed to save link";
+      const msg = err?.response?.data?.message || "Failed to save link";
 
       toast.error(msg);
     } finally {
@@ -129,9 +160,7 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
 
       onUpdated?.(updated);
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        "Failed to send link";
+      const msg = err?.response?.data?.message || "Failed to send link";
 
       toast.error(msg);
     } finally {
@@ -142,8 +171,7 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
   // ============================================
   // 🎯 DERIVED STATE
   // ============================================
-  const linkUnchanged =
-    linkInput.trim() === (meetingLink || "");
+  const linkUnchanged = linkInput.trim() === (meetingLink || "");
 
   const wasSent = !!meetingLinkSentAt;
 
@@ -202,13 +230,16 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
 
           <span
             className="
-              inline-flex items-center mt-1
-              px-2.5 py-0.5 rounded-full
-              text-[11px] font-semibold
-              bg-amber-50 text-amber-700 border border-amber-100
-            "
+            inline-flex items-center mt-1
+            px-2.5 py-0.5 rounded-full
+            text-[11px] font-semibold
+            bg-amber-50 text-amber-700 border border-amber-100
+          "
           >
-            DiabMukth
+            {appointment?.platform
+              ? appointment.platform.charAt(0).toUpperCase() +
+                appointment.platform.slice(1)
+              : "YogaT20"}
           </span>
         </div>
       </div>
@@ -260,12 +291,8 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
               "
             >
               {savingLink ? (
-                <Loader2
-                  size={12}
-                  className="animate-spin"
-                />
+                <Loader2 size={12} className="animate-spin" />
               ) : null}
-
               Save
             </button>
           ) : wasSent ? (
@@ -304,14 +331,10 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
               "
             >
               {sending ? (
-                <Loader2
-                  size={12}
-                  className="animate-spin"
-                />
+                <Loader2 size={12} className="animate-spin" />
               ) : (
                 <Send size={12} />
               )}
-
               Send
             </button>
           )}
@@ -336,6 +359,45 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
             Join
           </a>
         )}
+
+        {/* ✅ COMPLETE + ❌ CANCEL BUTTONS */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {canMarkComplete && (
+            <button
+              type="button"
+              onClick={handleComplete}
+              disabled={completing}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors disabled:opacity-50"
+            >
+              {completing ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <CheckCircle size={12} />
+              )}
+              Mark Complete
+            </button>
+          )}
+
+          {canCancel && (
+            <button
+              type="button"
+              onClick={() => setCancelModalOpen(true)}
+              disabled={cancelling}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+            >
+              <X size={12} />
+              Cancel
+            </button>
+          )}
+        </div>
+
+        {/* ❌ CANCEL MODAL */}
+        <CancelReasonModal
+          open={cancelModalOpen}
+          onClose={() => setCancelModalOpen(false)}
+          onConfirm={handleCancelConfirm}
+          loading={cancelling}
+        />
       </div>
     </div>
   );
