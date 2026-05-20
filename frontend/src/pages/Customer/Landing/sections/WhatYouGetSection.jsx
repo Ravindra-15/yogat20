@@ -205,7 +205,7 @@ useEffect(() => {
             className="overflow-x-auto pb-6 pt-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            <div className="flex gap-4 w-max items-center px-[calc(50vw-110px)]">
+            <div className="flex gap-4 w-max items-center px-[calc(50%-110px)]">
               {benefits.map((b, i) => (
                 <div
                   key={b.id}

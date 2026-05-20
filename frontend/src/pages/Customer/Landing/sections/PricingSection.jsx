@@ -1,6 +1,4 @@
 // Yoga T20 - Pricing Section
-// Now fetches plans dynamically from API (admin-configured pricing)
-// Shows top 2 plans marked visible on landing, with the first as bestseller
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -27,10 +25,8 @@ const features = [
 
 const PROGRAM_ID = "yogat20";
 
-// 💵 Format helper
 const formatPrice = (n) => `$${Number(n || 0).toLocaleString("en-US")}`;
 
-// 📅 Monthly price helper — for "$/month" display
 const calcMonthlyPrice = (plan) => {
   const months = plan.durationMonths || parseMonths(plan.planName) || 1;
   if (months <= 0) return plan.offerPrice;
@@ -48,7 +44,6 @@ export default function PricingSection() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 📥 Fetch plans on mount
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -58,7 +53,6 @@ export default function PricingSection() {
           landingOnly: true,
         });
         if (!mounted) return;
-        // Take only top 2 plans (landing shows max 2)
         setPlans(fetched.slice(0, 2));
       } catch (err) {
         console.error("Failed to load plans:", err);
@@ -80,15 +74,14 @@ export default function PricingSection() {
   };
 
   return (
-    <section className="py-16 lg:py-20 bg-white">
+    <section className="py-12 sm:py-16 lg:py-20 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* HEADING */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">
+        <div className="text-center mb-8 sm:mb-10">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
             Simple, <span className="text-orange-500">transparent pricing</span>
           </h2>
-
-          <p className="text-gray-500 text-sm sm:text-base">
+          <p className="text-gray-500 text-xs sm:text-sm lg:text-base">
             Pricing Options which are affordable
           </p>
         </div>
@@ -105,7 +98,8 @@ export default function PricingSection() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-4">
+          // <div className="flex flex-col md:flex-row items-stretch justify-end gap-4 mb-6 sm:mb-8 max-w-[calc(50%+40px)] ml-auto pr-0 sm:pr-2">
+            <div className="flex flex-col md:flex-row items-stretch justify-center gap-5 mb-8 sm:mb-10">
             {plans.map((plan, idx) => {
               const isBestseller = plan.isBestseller || idx === 0;
               const monthlyPrice = calcMonthlyPrice(plan);
@@ -113,14 +107,15 @@ export default function PricingSection() {
               return (
                 <div
                   key={plan._id}
-                  className={`relative rounded-[28px] border transition-all duration-300 w-full md:w-[330px] min-h-[205px] px-6 py-5 flex flex-col ${
+                  className={`relative rounded-[24px] sm:rounded-[28px] border transition-all duration-300 w-full md:w-[300px] lg:w-[330px] px-5 sm:px-6 py-5 flex flex-col ${
+                    // className={`relative rounded-[20px] sm:rounded-[24px] border transition-all duration-300 w-full md:w-[230px] lg:w-[260px] px-4 sm:px-5 py-4 flex flex-col ${
                     isBestseller
-                      ? "bg-[#0F5A53] border-[#0F5A53] text-white shadow-md"
+                      ? "bg-[#0F5A53] border-[#0F5A53] text-white shadow-lg"
                       : "bg-white border-gray-200 text-gray-800 shadow-sm"
                   }`}
                 >
                   {/* Bestseller badge */}
-                  <div className="min-h-[24px] mb-4">
+                  <div className="min-h-[24px] mb-3">
                     {isBestseller && (
                       <div className="flex items-center gap-1 text-yellow-400 text-xs font-semibold">
                         <span>★</span>
@@ -129,10 +124,10 @@ export default function PricingSection() {
                     )}
                   </div>
 
-                  {/* Top row: name + offer badge */}
+                  {/* Plan name + offer badge */}
                   <div className="flex items-start justify-between mb-2">
                     <h3
-                      className={`text-[20px] leading-none font-bold ${
+                      className={`text-[18px] sm:text-[20px] leading-none font-bold ${
                         isBestseller ? "text-white" : "text-gray-900"
                       }`}
                     >
@@ -146,10 +141,9 @@ export default function PricingSection() {
                     )}
                   </div>
 
-                   
-                  {/* Original price (struck-through) — reserves space even when empty */}
+                  {/* Original price (strike-through) */}
                   <p
-                    className={`text-sm line-through mb-2 min-h-[20px] ${
+                    className={`text-xs sm:text-sm line-through mb-2 min-h-[18px] sm:min-h-[20px] ${
                       isBestseller ? "text-teal-200" : "text-gray-400"
                     }`}
                   >
@@ -157,18 +151,18 @@ export default function PricingSection() {
                       ? formatPrice(plan.originalPrice)
                       : "\u00A0"}
                   </p>
+
                   {/* Monthly price */}
-                  <div className="mb-6">
+                  <div className="mb-5 sm:mb-6">
                     <span
-                      className={`text-[28px] font-extrabold leading-none ${
+                      className={`text-[24px] sm:text-[28px] font-extrabold leading-none ${
                         isBestseller ? "text-white" : "text-gray-900"
                       }`}
                     >
                       {formatPrice(monthlyPrice)}
                     </span>
-
                     <span
-                      className={`ml-2 text-sm font-medium ${
+                      className={`ml-2 text-xs sm:text-sm font-medium ${
                         isBestseller ? "text-gray-100" : "text-gray-600"
                       }`}
                     >
@@ -180,7 +174,7 @@ export default function PricingSection() {
                   <div className="mt-auto">
                     <button
                       onClick={() => handleBuy(plan.planName)}
-                      className="w-full h-10 text-xs rounded-xl bg-orange-500 hover:bg-orange-600 transition-all text-white text-sm font-semibold shadow-md"
+                      className="w-full h-10 rounded-xl bg-orange-500 hover:bg-orange-600 transition-all text-white text-xs sm:text-sm font-semibold shadow-md"
                     >
                       Buy now !
                     </button>
@@ -196,18 +190,20 @@ export default function PricingSection() {
           </div>
         )}
 
-        {/* COMPARISON TABLE — features stay hardcoded as decided */}
-        <div className="overflow-x-auto rounded-[28px] border border-gray-100 shadow-sm bg-white">
-          <table className="w-full min-w-[900px] text-sm">
+        {/* COMPARISON TABLE — with teal accent + blue divider lines */}
+        <p className="lg:hidden text-center text-xs text-gray-500 mb-3 italic">
+          ← Swipe to compare all plans →
+        </p>
+        <div className="overflow-x-auto rounded-[24px] sm:rounded-[28px] border-2 border-[#0F5A53]/15 shadow-sm bg-white">
+          <table className="w-full min-w-[700px] text-xs sm:text-sm">
             <thead>
-              <tr>
-                <th className="text-left px-10 py-6 text-gray-400 font-normal w-[50%]" />
+              <tr className="border-b-2 border-[#0F5A53]/20">
+                <th className="text-left px-6 sm:px-10 py-4 sm:py-6 text-gray-400 font-normal w-[50%]" />
 
-                {/* Dynamic header columns from fetched plans */}
                 {plans.map((plan, idx) => (
                   <th
                     key={plan._id}
-                    className={`px-6 py-6 text-center font-bold text-[18px] ${
+                    className={`px-4 sm:px-6 py-4 sm:py-6 text-center font-bold text-[15px] sm:text-[18px] border-l-2 border-[#0F5A53]/15 ${
                       idx === 0
                         ? "text-[#0F5A53] bg-[#EAF7F5]"
                         : "text-gray-800"
@@ -217,13 +213,12 @@ export default function PricingSection() {
                   </th>
                 ))}
 
-                {/* Fallback headers if no plans loaded */}
                 {plans.length === 0 && (
                   <>
-                    <th className="px-6 py-6 text-center font-bold text-[#0F5A53] bg-[#EAF7F5] text-[18px]">
+                    <th className="px-4 sm:px-6 py-4 sm:py-6 text-center font-bold text-[#0F5A53] bg-[#EAF7F5] text-[15px] sm:text-[18px] border-l-2 border-[#0F5A53]/15">
                       12 Months
                     </th>
-                    <th className="px-6 py-6 text-center font-bold text-gray-800 text-[18px]">
+                    <th className="px-4 sm:px-6 py-4 sm:py-6 text-center font-bold text-gray-800 text-[15px] sm:text-[18px] border-l-2 border-[#0F5A53]/15">
                       3 Months
                     </th>
                   </>
@@ -235,27 +230,24 @@ export default function PricingSection() {
               {features.map((feature, i) => (
                 <tr
                   key={feature}
-                  className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}
+                  className="border-b border-[#0F5A53]/10 last:border-b-0"
                 >
-                  <td className="px-10 py-4 text-gray-700 font-medium border-b border-gray-100">
+                  <td className="px-6 sm:px-10 py-3 sm:py-4 text-gray-900 font-bold">
                     {feature}
                   </td>
 
-                  {/* Render a checkmark column per plan */}
                   {(plans.length > 0
                     ? plans
                     : [{ _id: "fallback1" }, { _id: "fallback2" }]
                   ).map((plan, idx) => (
                     <td
                       key={plan._id}
-                      className={`px-6 py-4 text-center border-b ${
-                        idx === 0
-                          ? "bg-[#EAF7F5] border-[#D8EFEB]"
-                          : "border-gray-100"
+                      className={`px-4 sm:px-6 py-3 sm:py-4 text-center border-l-2 border-[#0F5A53]/15 ${
+                        idx === 0 ? "bg-[#EAF7F5]" : ""
                       }`}
                     >
                       <Check
-                        size={18}
+                        size={16}
                         className="text-teal-600 mx-auto stroke-[3]"
                       />
                     </td>

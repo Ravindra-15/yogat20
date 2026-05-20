@@ -1,6 +1,6 @@
-// Yoga T20 - Tailored Programs Section
-// Cross-promo to other Zealtho programs (excludes YogaT20 since user is already here)
-// Each card opens its program in a new tab
+// Yoga T20 - Programs Section
+// Same exact layout/styling as Zealtho Programs Section
+// Uses YogaT20 colors, images and content
 
 const programs = [
   {
@@ -15,6 +15,7 @@ const programs = [
       "bg-teal-700 hover:bg-teal-800 shadow-[0_4px_14px_rgba(15,90,83,0.30)]",
     url: import.meta.env.VITE_ZEALTHO_URL || "http://localhost:5173",
   },
+
   {
     id: "diabmukt",
     title: "Diabmukt",
@@ -27,6 +28,7 @@ const programs = [
       "bg-[#4F6EF7] hover:bg-[#3F5EE6] shadow-[0_4px_14px_rgba(79,110,247,0.30)]",
     url: import.meta.env.VITE_DIABMUKT_URL || "#",
   },
+
   {
     id: "slimfitter",
     title: "Slimfitter",
@@ -39,6 +41,7 @@ const programs = [
       "bg-indigo-700 hover:bg-indigo-800 shadow-[0_4px_14px_rgba(67,56,202,0.25)]",
     url: import.meta.env.VITE_SLIMFITTER_URL || "#",
   },
+
   {
     id: "mommyfit",
     title: "MommyFit",
@@ -58,10 +61,10 @@ export default function ProgramsSection() {
   return (
     <section id="programs" className="py-8 lg:py-12 bg-white scroll-mt-24">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-14">
-        <div className="text-center mb-12 lg:mb-16">
+        {/* Heading */}
+        <div className="text-center mb-10 lg:mb-14">
           <h2 className="text-3xl sm:text-3xl lg:text-[40px] font-bold text-[#0F172A] mb-3">
-            Tailored Programs{" "}
-            <span className="text-orange-500">for you !</span>
+            Tailored Programs <span className="text-orange-500">for you !</span>
           </h2>
 
           <p className="text-gray-500 text-sm sm:text-base lg:text-lg">
@@ -69,7 +72,8 @@ export default function ProgramsSection() {
           </p>
         </div>
 
-        <div className="space-y-8 lg:space-y-10">
+        {/* Cards */}
+        <div className="space-y-6 lg:space-y-8">
           {programs.map((prog) => {
             const isRight = prog.textSide === "right";
 
@@ -77,34 +81,75 @@ export default function ProgramsSection() {
               <div
                 key={prog.id}
                 className={`
-                  relative overflow-hidden rrounded-[28px] lg:rounded-[36px]
+                  relative overflow-hidden rounded-[28px] lg:rounded-[36px]
                   ${prog.bg}
                   min-h-[300px]
-sm:min-h-[360px]
-lg:min-h-[300px]
-flex flex-col lg:flex-row justify-between
-px-5 py-7 sm:px-8 lg:px-12 lg:py-0
+                  sm:min-h-[300px]
+                  lg:min-h-[300px]
+                  flex flex-col lg:flex-row justify-between
+                  px-5 py-7 sm:px-8 lg:px-12 lg:py-0
                 `}
               >
+                {/* Accent Shape */}
                 <div
                   className={`
-                    absolute w-[220px] h-[220px]
-                    lg:w-[320px] lg:h-[320px]
-                    rounded-full ${prog.accent}
-                    opacity-70 blur-[2px]
-                    top-1/2 -translate-y-1/2 z-0
+                    absolute rounded-full ${prog.accent}
+                    opacity-70 z-0
+                    top-1/2 -translate-y-1/2
+
                     ${
-                      isRight
-                        ? "left-[80px] lg:left-[120px]"
-                        : "right-[80px] lg:right-[120px]"
+                      prog.id === "zealtho"
+                        ? `
+                          w-[180px] h-[180px]
+                          sm:w-[240px] sm:h-[240px]
+                          lg:w-[520px] lg:h-[520px]
+                          right-[-20px] lg:right-[40px]
+                        `
+                        : ""
+                    }
+
+                    ${
+                      prog.id === "diabmukt"
+                        ? `
+                          w-[190px] h-[190px]
+                          sm:w-[250px] sm:h-[250px]
+                          lg:w-[520px] lg:h-[520px]
+                          left-[-30px] lg:left-[40px]
+                        `
+                        : ""
+                    }
+
+                    ${
+                      prog.id === "slimfitter"
+                        ? `
+                          w-[180px] h-[180px]
+                          sm:w-[240px] sm:h-[240px]
+                          lg:w-[520px] lg:h-[520px]
+                          right-[-20px] lg:right-[40px]
+                        `
+                        : ""
+                    }
+
+                    ${
+                      prog.id === "mommyfit"
+                        ? `
+                          w-[190px] h-[190px]
+                          sm:w-[250px] sm:h-[250px]
+                          lg:w-[520px] lg:h-[520px]
+                          left-[-30px] lg:left-[40px]
+                        `
+                        : ""
                     }
                   `}
                 />
 
+                {/* Text */}
                 <div
                   className={`
-                    relative z-10 w-full lg:w-1/2
+                    relative z-10
+                    w-full lg:w-1/2
                     flex flex-col justify-center
+
                     ${
                       isRight
                         ? "lg:order-2 items-start lg:items-end text-left lg:text-right"
@@ -112,12 +157,12 @@ px-5 py-7 sm:px-8 lg:px-12 lg:py-0
                     }
                   `}
                 >
-                  <div className="max-w-[500px]">
-                    <h3 className="text-[30px] lg:text-[35px] font-bold text-[#0F172A] mb-4 leading-tight">
+                  <div className="max-w-[520px]">
+                    <h3 className="text-[30px] lg:text-[35px] font-bold text-[#0F172A] leading-tight mb-4">
                       {prog.title}
                     </h3>
 
-                    <p className="text-gray-600 text-sm sm:text-base lg:text-[19px] leading-relaxed mb-8">
+                    <p className="text-gray-600 text-sm sm:text-base lg:text-[19px] leading-relaxed mb-5 lg:mb-8">
                       {prog.subtitle}
                     </p>
 
@@ -128,7 +173,7 @@ px-5 py-7 sm:px-8 lg:px-12 lg:py-0
                       className={`
                         inline-flex items-center justify-center
                         text-white text-sm lg:text-base font-semibold
-                        px-8 lg:px-10 py-3 rounded-full
+                        px-7 lg:px-10 py-3 rounded-full
                         transition-all duration-300
                         ${prog.btnBg}
                       `}
@@ -138,10 +183,14 @@ px-5 py-7 sm:px-8 lg:px-12 lg:py-0
                   </div>
                 </div>
 
+                {/* Image */}
                 <div
                   className={`
-                    relative z-10 w-full lg:w-1/2
-                    flex items-end justify-center mt-8 lg:mt-0
+                    relative z-10
+                    w-full lg:w-1/2
+                    flex items-end justify-center
+                    lg:mt-0
+
                     ${
                       isRight
                         ? "lg:order-1 lg:justify-start"
@@ -152,7 +201,82 @@ px-5 py-7 sm:px-8 lg:px-12 lg:py-0
                   <img
                     src={prog.image}
                     alt={prog.title}
-                    className="relative z-10 w-[220px] sm:w-[260px] lg:w-[360px] xl:w-[420px] object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.08)]"
+                    className={`
+                      relative z-10
+                      object-contain
+                      drop-shadow-[0_14px_34px_rgba(0,0,0,0.10)]
+
+                      absolute bottom-0
+                      lg:relative
+
+                      w-[360px]
+                      sm:w-[420px]
+                      md:w-[480px]
+                      lg:w-[560px]
+                      xl:w-[600px]
+
+                     ${
+                       prog.id === "zealtho"
+                         ? `
+                            lg:h-[320px]
+                            xl:h-[340px]
+
+                            right-[-10px]
+                            sm:right-[10px]
+                            lg:right-auto
+
+                            translate-y-1
+                            lg:translate-y-2
+
+                            lg:translate-x-14
+    `
+                         : ""
+                     }
+                      ${
+                        prog.id === "diabmukt"
+                          ? `
+                            left-[-20px]
+                            sm:left-[0px]
+                            lg:left-auto
+
+                            bottom-[-10px]
+                            lg:bottom-auto
+
+                            lg:-translate-x-4
+                          `
+                          : ""
+                      }
+
+                      ${
+                        prog.id === "slimfitter"
+                          ? `
+                            right-[-15px]
+                            sm:right-[10px]
+                            lg:right-[-100px]
+
+                            bottom-[-5px]
+                            lg:bottom-auto
+
+                            lg:-translate-x-8
+                          `
+                          : ""
+                      }
+
+                      ${
+                        prog.id === "mommyfit"
+                          ? `
+                            left-[-25px]
+                            sm:left-[0px]
+                            lg:left-auto
+
+                            bottom-[-10px]
+                            lg:bottom-auto
+
+                            lg:-translate-x-12
+                          `
+                          : ""
+                      }
+                    `}
                   />
                 </div>
               </div>
