@@ -1,6 +1,6 @@
 // Yoga T20 - "What will you get?" Section
-// Tighter circular arrangement — chips orbit closer around center figure
 
+import { useState, useRef, useEffect } from "react";
 import { Heart, Activity, Bell, Users, Smile } from "lucide-react";
 import yogaT20PersonImg from "../../../../assets/yoga-t20-person.png";
 
@@ -47,114 +47,175 @@ const benefits = [
   },
 ];
 
-const ChipCard = ({ benefit }) => {
+// Card — fixed size for uniform layout
+const ChipCard = ({ benefit, isActive = false }) => {
   const Icon = benefit.icon;
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-[0_4px_16px_rgba(16,24,40,0.06)] px-5 py-4 max-w-[220px]">
-      <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2 ${benefit.bg}`}
-      >
-        <Icon size={18} className={benefit.color} />
+    <div
+      className={`bg-white border border-gray-100 rounded-2xl shadow-[0_8px_24px_rgba(16,24,40,0.08)] px-5 py-5 w-[200px] h-[180px] flex flex-col items-center justify-center text-center transition-all duration-300 ${
+        isActive ? "scale-110 shadow-[0_12px_32px_rgba(16,24,40,0.15)]" : "scale-100"
+      }`}
+    >
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${benefit.bg}`}>
+        <Icon size={20} className={benefit.color} />
       </div>
-      <p className="font-bold text-gray-800 text-sm mb-1">{benefit.title}</p>
-      <p className="text-gray-500 text-xs leading-relaxed">
-        {benefit.description}
-      </p>
+      <p className="font-bold text-gray-800 text-sm mb-1.5 leading-tight">{benefit.title}</p>
+      <p className="text-gray-500 text-xs leading-relaxed">{benefit.description}</p>
     </div>
   );
 };
 
 export default function WhatYouGetSection() {
+  // Track which card is centered for mobile zoom effect
+  const scrollRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(1); // middle card default
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const containerCenter = el.scrollLeft + el.clientWidth / 2;
+      const cards = el.querySelectorAll("[data-card]");
+      let closest = 0;
+      let minDist = Infinity;
+      cards.forEach((card, i) => {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const dist = Math.abs(cardCenter - containerCenter);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = i;
+        }
+      });
+      setActiveIndex(closest);
+    };
+
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // initial
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // 📍 Scroll to second card on mount (mobile only — shows user there's more to scroll)
+useEffect(() => {
+  const el = scrollRef.current;
+  if (!el) return;
+  const cards = el.querySelectorAll("[data-card]");
+  if (cards[1]) {
+    const containerCenter = el.clientWidth / 2;
+    const cardCenter = cards[1].offsetLeft + cards[1].offsetWidth / 2;
+    el.scrollTo({ left: cardCenter - containerCenter, behavior: "instant" });
+  }
+}, []);
+
   return (
-    <section className="py-14 lg:py-20 bg-white">
+    <section className="py-10 sm:py-14 lg:py-16 bg-white">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* HEADING */}
-        <div className="text-center mb-10 sm:mb-14">
+        <div className="text-center mb-8 sm:mb-12">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-teal-900 mb-2">
-            What will you{" "}
-            <span className="text-orange-500">get</span> ?
+            What will you <span className="text-orange-500">get</span> ?
           </h2>
-          <p className="text-gray-500 text-sm sm:text-base">
-            Lets List out the Benefits of the Yoga T20 Program
+          <p className="text-gray-500 text-xs sm:text-sm italic">
+            "Lets List out the Benefits of the Yoga T20 Program"
           </p>
         </div>
 
-        {/* DESKTOP — Tight circular floating layout (xl and up) */}
-        <div className="hidden xl:block relative h-[640px] max-w-[1100px] mx-auto">
+        {/* DESKTOP — Half-circle orbit */}
+        <div className="hidden lg:block relative h-[620px] max-w-[1200px] mx-auto">
+{/* Center yoga image — bigger + shadow */}
+<div className="absolute left-1/2 bottom-0 -translate-x-1/2 z-0">
+  <div className="relative">
+    <img
+      src={yogaT20PersonImg}
+      alt="Yoga T20 practitioner"
+      className="w-[380px] lg:w-[640px] h-auto object-contain relative z-10"
+    />
+    {/* Floor shadow */}
+   <div
+  className="absolute left-1/2 -translate-x-1/2 rounded-[50%] z-0"
+  style={{
+    bottom: "-10px",
+    width: "70%",
+    height: "40px",
+    background: "radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 70%)",
+    filter: "blur(8px)",
+  }}
+/>
+  </div>
+</div>
+          {/* 
+            Half-circle math:
+            - center X = 50% of container
+            - top arc has 3 cards (left, top-center, right)
+            - bottom arc has 2 cards (lower-left, lower-right) closer to bottom edge
+          */}
 
-          {/* Center yoga image */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
-            <img
-              src={yogaT20PersonImg}
-              alt="Yoga T20 practitioner"
-              className="w-[420px] h-[560px] object-contain"
-            />
-          </div>
-
-          {/* Top-left chip — closer to center */}
-          <div className="absolute top-20 left-[120px] z-10">
-            <ChipCard benefit={benefits[0]} />
-          </div>
-
-          {/* Top-center chip */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+          {/* TOP-CENTER (peak of arc) */}
+          <div className="absolute top-[20px] left-1/2 -translate-x-1/2 z-10">
             <ChipCard benefit={benefits[1]} />
           </div>
 
-          {/* Top-right chip — closer to center */}
-          <div className="absolute top-20 right-[120px] z-10">
+          {/* TOP-LEFT (closer to center for half-circle look) */}
+          <div className="absolute top-[140px] left-[180px] z-10">
+            <ChipCard benefit={benefits[0]} />
+          </div>
+
+          {/* TOP-RIGHT */}
+          <div className="absolute top-[140px] right-[180px] z-10">
             <ChipCard benefit={benefits[2]} />
           </div>
 
-          {/* Bottom-left chip — closer to center */}
-          <div className="absolute bottom-16 left-[160px] z-10">
+          {/* BOTTOM-LEFT */}
+          <div className="absolute bottom-[80px] left-[20px] z-10">
             <ChipCard benefit={benefits[3]} />
           </div>
 
-          {/* Bottom-right chip — closer to center */}
-          <div className="absolute bottom-16 right-[160px] z-10">
+          {/* BOTTOM-RIGHT */}
+          <div className="absolute bottom-[80px] right-[20px] z-10">
             <ChipCard benefit={benefits[4]} />
           </div>
         </div>
 
-        {/* TABLET — Hybrid layout (lg only) */}
-        <div className="hidden lg:block xl:hidden">
-          <div className="grid grid-cols-3 gap-4 items-center max-w-4xl mx-auto">
-            <div className="flex flex-col gap-6">
-              <ChipCard benefit={benefits[0]} />
-              <ChipCard benefit={benefits[3]} />
-            </div>
-
-            <div className="flex flex-col items-center gap-3">
-              <ChipCard benefit={benefits[1]} />
-              <img
-                src={yogaT20PersonImg}
-                alt="Yoga T20 practitioner"
-                className="w-[260px] h-[360px] object-contain"
-              />
-            </div>
-
-            <div className="flex flex-col gap-6">
-              <ChipCard benefit={benefits[2]} />
-              <ChipCard benefit={benefits[4]} />
-            </div>
-          </div>
-        </div>
-
-        {/* MOBILE / SMALL TABLET — Stacked grid (below lg) */}
+        {/* MOBILE / TABLET — Horizontal scroll with zoom on center card */}
         <div className="lg:hidden">
-          <div className="flex justify-center mb-10">
-            <img
-              src={yogaT20PersonImg}
-              alt="Yoga T20 practitioner"
-              className="w-[260px] sm:w-[320px] h-auto object-contain"
-            />
+          <div className="flex justify-center mb-8">
+            <div className="relative">
+  <img
+    src={yogaT20PersonImg}
+    alt="Yoga T20 practitioner"
+    className="w-[360px] sm:w-[360px] h-auto object-contain relative z-10"
+  />
+  <div
+    className="absolute left-1/2 -translate-x-1/2 rounded-[50%] z-0"
+    style={{
+      bottom: "-10px",
+      width: "70%",
+      height: "40px",
+      background: "radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 70%)",
+      filter: "blur(8px)",
+    }}
+  />
+</div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto justify-items-center">
-            {benefits.map((b) => (
-              <ChipCard key={b.id} benefit={b} />
-            ))}
+
+          {/* Snap scroll with center-zoom effect */}
+          <div
+            ref={scrollRef}
+            className="overflow-x-auto pb-6 pt-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            <div className="flex gap-4 w-max items-center px-[calc(50vw-110px)]">
+              {benefits.map((b, i) => (
+                <div
+                  key={b.id}
+                  data-card
+                  className="flex-shrink-0 snap-center"
+                >
+                  <ChipCard benefit={b} isActive={i === activeIndex} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
