@@ -1,7 +1,4 @@
-// Yoga T20 - "Our Structure" Section (NEW)
-// Left: heading + 3 accordion items (first one open with details)
-// Right: yoga group image + "Your weekly activity" mini chart card overlay
-// Replace dummy unsplash URL with /assets/yoga-group.png when image is ready
+// Yoga T20 - "Our Structure" Section
 
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -34,80 +31,85 @@ export default function OurStructureSection() {
   const toggle = (id) => setOpenId((prev) => (prev === id ? null : id));
 
   return (
-    <section className="py-14 lg:py-20 bg-white">
+    <section className="py-8 sm:py-12 lg:py-14 bg-white">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-10 items-stretch">
           {/* LEFT — Heading + Accordion */}
-          <div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8">
+          {/* LEFT — Heading + Accordion */}
+          <div className="w-full flex flex-col justify-center h-full">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-teal-900 mb-6 sm:mb-8 lg:mb-10">
               Our <span className="text-orange-500">Structure</span>
             </h2>
 
             <div className="space-y-3">
               {accordionItems.map((item) => {
                 const isOpen = openId === item.id;
-                const isFirst = item.id === 1;
 
                 return (
                   <div
                     key={item.id}
-                    className={`rounded-2xl overflow-hidden transition-all ${
-                      isFirst && isOpen
-                        ? "bg-orange-400 text-white"
+                    className={`rounded-2xl overflow-hidden transition-all duration-300 ${
+                      isOpen
+                        ? "bg-orange-400 shadow-sm"
                         : "bg-white border border-gray-200"
                     }`}
                   >
                     <button
                       onClick={() => toggle(item.id)}
-                      className="w-full flex items-center justify-between px-5 py-4 text-left"
+                      className="w-full flex items-center justify-between px-5 sm:px-6 py-6 sm:py-7 text-left"
                     >
                       <span
                         className={`font-semibold text-sm sm:text-base ${
-                          isFirst && isOpen ? "text-white" : "text-gray-800"
+                          isOpen ? "text-white" : "text-gray-800"
                         }`}
                       >
                         {item.title}
                       </span>
-                      {isOpen ? (
-                        <ChevronUp
-                          size={18}
-                          className={isFirst && isOpen ? "text-white" : "text-gray-500"}
-                        />
-                      ) : (
-                        <ChevronDown size={18} className="text-gray-500" />
-                      )}
+                      <ChevronDown
+                        size={18}
+                        className={`flex-shrink-0 transition-transform duration-300 ${
+                          isOpen ? "rotate-180 text-white" : "text-gray-500"
+                        }`}
+                      />
                     </button>
 
-                    {isOpen && (
-                      <div
-                        className={`px-5 pb-4 text-sm leading-relaxed ${
-                          isFirst ? "text-white/95" : "text-gray-600"
-                        }`}
-                      >
-                        {item.content}
+                    {/* Slide animation */}
+                    <div
+                      className={`grid transition-all duration-300 ease-in-out ${
+                        isOpen
+                          ? "grid-rows-[1fr] opacity-100"
+                          : "grid-rows-[0fr] opacity-0"
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="px-5 sm:px-6 pb-4 sm:pb-5 text-sm leading-relaxed text-white/95">
+                          {item.content}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* RIGHT — Image + Weekly Activity Card Overlay */}
-          <div className="relative">
+          {/* RIGHT — Image + Weekly Activity Card */}
+         <div className="relative w-full pb-10 sm:pb-12 lg:pb-5">
             <div className="rounded-3xl overflow-hidden">
               <img
-                src="https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?w=800&q=80"
+                src="/images/ourStructure.png"
                 alt="Yoga group practice"
-                className="w-full h-[420px] object-cover"
+                className="w-full h-[280px] sm:h-[380px] lg:h-[460px] object-cover"
               />
             </div>
 
-            {/* Weekly activity mini-card overlay */}
-            <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 bg-white rounded-2xl shadow-lg px-4 py-3 w-[180px]">
-              <p className="text-[11px] text-gray-500 mb-2">Your weekly activity</p>
-              <div className="flex items-end justify-between gap-1 h-[50px]">
+            {/* Weekly activity card */}
+            <div className="absolute -bottom-8 left-4 sm:-bottom-10 sm:-left-6 lg:-bottom-12 lg:-left-10 bg-white rounded-2xl shadow-2xl px-4 py-3 w-[150px] sm:w-[180px] lg:w-[200px]">
+              {" "}
+              <p className="text-[11px] sm:text-xs text-gray-500 mb-2 font-medium">
+                Your weekly activity
+              </p>
+              <div className="flex items-end justify-between gap-1 h-[40px] sm:h-[50px]">
                 {weeklyData.map((val, i) => (
                   <div
                     key={i}
@@ -118,7 +120,6 @@ export default function OurStructureSection() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </section>
