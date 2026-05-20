@@ -14,6 +14,7 @@ import {
 import LandingPage from "./pages/Customer/Landing/LandingPage";
 // 👤 CUSTOMER PAGES
 import Signup from "./pages/Signup/Signup";
+import ScrollToTop from "./components/common/ScrollToTop";
 
 import OtpVerification from "./pages/Signup/OtpVerification";
 import ProfileStepOne from "./pages/Signup/ProfileStepOne";
@@ -39,6 +40,11 @@ import MyProfile from "./pages/Customer/MyProfile/MyProfile";
 import CustomerNotifications from "./pages/Customer/Notifications/Notifications";
 import MyPlansAndBillings from "./pages/Customer/MyPlansAndBillings/MyPlansAndBillings";
 import Receipt from "./pages/Customer/Receipt/Receipt";
+
+import PrivacyPolicy from "./pages/Customer/PrivacyPolicy/PrivacyPolicy";
+import ReferAndEarnPage from "./pages/Customer/ReferAndEarn/ReferAndEarnPage";
+import TermsOfUse from "./pages/Customer/TermsOfUse/TermsOfUse";
+import About from "./pages/Customer/About/About";
 
 // 🔐 ADMIN PAGES & GUARDS
 import AdminLayout from "./components/admin/layout/AdminLayout";
@@ -72,6 +78,7 @@ import Settings from "./pages/Doctor/Settings/Settings";
 function App() {
   return (
     <Router>
+       <ScrollToTop />
       <div className="pt-16">
       <Routes>
         {/* ============================================ */}
@@ -81,6 +88,17 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify-otp" element={<OtpVerification />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
+        <Route path="/about" element={<About />} />
+        <Route
+          path="/refer-and-earn"
+          element={
+            <ProtectedRoute>
+              <ReferAndEarnPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/profile-step-1"
           element={
