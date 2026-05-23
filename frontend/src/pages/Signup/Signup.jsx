@@ -58,11 +58,12 @@ const WhatsAppIcon = () => (
 
 const Signup = () => {
   const navigate = useNavigate();
-const nextPath = new URLSearchParams(window.location.search).get("next");
+  const nextPath = new URLSearchParams(window.location.search).get("next");
 
-const [form, setForm] = useState({ email: "", password: "", phone: "" });
+  const [form, setForm] = useState({ email: "", password: "", phone: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -75,6 +76,11 @@ const [form, setForm] = useState({ email: "", password: "", phone: "" });
   };
 
   const handleSignup = async () => {
+    if (!agreed) {
+      return toast.error(
+        "Please accept the Terms of Service and Privacy Policy.",
+      );
+    }
     const error = validateSignup(form);
     if (error) return toast.error(error);
 
@@ -154,7 +160,7 @@ const [form, setForm] = useState({ email: "", password: "", phone: "" });
             {/* Phone */}
             <div className="flex w-full gap-2">
               <div className="border border-gray-300 rounded-xl px-3 flex items-center text-sm bg-gray-100">
-                +1
+                +91
               </div>
               <input
                 type="tel"
@@ -167,10 +173,36 @@ const [form, setForm] = useState({ email: "", password: "", phone: "" });
             </div>
 
             {/* Button */}
+            {/* TERMS CHECKBOX */}
+            <label className="flex items-start gap-2.5 text-[12px] text-[#6B7280] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 accent-[#4F46E5] w-4 h-4 flex-shrink-0"
+              />
+              <span>
+                I agree to YogaT20's{" "}
+                <Link
+                  to="/terms-of-use"
+                  className="text-orange-500 hover:underline"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  to="/privacy-policy"
+                  className="text-orange-500 hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+
             <button
               onClick={handleSignup}
-              disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full text-[14px] font-medium transition"
+              disabled={loading || !agreed}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full text-[14px] font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating..." : "Create Account"}
             </button>
@@ -201,11 +233,6 @@ const [form, setForm] = useState({ email: "", password: "", phone: "" });
               >
                 Log in
               </Link>
-            </p>
-
-            <p className="text-xs text-gray-500 text-center mt-2">
-              By continuing, you agree to Zealtho’s Terms of Service and Privacy
-              Policy
             </p>
           </div>
         </div>

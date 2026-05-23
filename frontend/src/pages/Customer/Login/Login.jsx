@@ -73,7 +73,7 @@ const Login = () => {
     password: "",
   });
 
-  const [remember, setRemember] = useState(false);
+  // const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -105,12 +105,17 @@ const Login = () => {
         form,
       );
 
-      login(data.data.token, remember);
+      // login(data.data.token, remember);
+
+      // // Store user
+      // const storage = remember ? localStorage : sessionStorage;
+
+      // storage.setItem("user", JSON.stringify(data.data.user));
+
+      login(data.data.token, true);
 
       // Store user
-      const storage = remember ? localStorage : sessionStorage;
-
-      storage.setItem("user", JSON.stringify(data.data.user));
+      localStorage.setItem("user", JSON.stringify(data.data.user));
 
       toast.success("Welcome back!");
 
@@ -152,7 +157,7 @@ const Login = () => {
         <div className="max-w-md mx-auto md:mx-0 text-center md:text-left px-2">
           <h1 className="text-[38px] md:text-[52px] font-semibold text-teal-900 leading-[1.15]">
             Welcome <br />
-            <span className="text-orange-500">Back to Zealtho</span>
+            <span className="text-orange-500">Back to YogaT20</span>
           </h1>
 
           <p className="mt-4 text-gray-600 text-[14px] leading-[1.6] max-w-[420px] mx-auto md:mx-0">
@@ -198,7 +203,7 @@ const Login = () => {
             </div>
 
             {/* REMEMBER */}
-            <div className="flex items-center justify-between text-[13px] text-gray-500">
+            {/* <div className="flex items-center justify-between text-[13px] text-gray-500">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -209,6 +214,12 @@ const Login = () => {
                 Remember me
               </label>
 
+              <span className="text-orange-500 hover:underline cursor-pointer">
+                Forgot password?
+              </span>
+            </div> */}
+            {/* FORGOT PASSWORD */}
+            <div className="flex justify-end text-[13px]">
               <span className="text-orange-500 hover:underline cursor-pointer">
                 Forgot password?
               </span>
