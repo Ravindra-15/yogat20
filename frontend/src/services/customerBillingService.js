@@ -46,3 +46,18 @@ export const fetchReceipt = async (consultationId) => {
   const response = await authApi.get(`/customer/billing/receipt/${consultationId}`);
   return response.data.data.receipt;
 };
+
+// ============================================
+// 📦 GET MY SUBSCRIPTION (current week + progress)
+// ============================================
+/**
+ * Fetches the user's subscription for a program.
+ * @param {string} programId - yogat20 | diabmukt | mommyfit | slimfitter
+ * @returns subscription object (or null if never subscribed)
+ */
+export const fetchMySubscription = async (programId) => {
+  const response = await authApi.get("/customer/billing/subscription", {
+    params: { programId },
+  });
+  return response.data.data.subscription;
+};

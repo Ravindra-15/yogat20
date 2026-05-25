@@ -3,7 +3,7 @@
 // Uses real clinical videos from admin CMS + real upcoming appointment
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Play, Check, Plus, Bell, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
@@ -14,6 +14,7 @@ import {
   buildThumbnailSrc,
 } from "../../../services/clinicalVideoService";
 import { listMyAppointments } from "../../../services/customerAppointmentService";
+import { fetchMyProfile } from "../../../services/customerProfileService";
 
 const programTitles = {
   yogat20: "Yoga T20",
@@ -119,6 +120,14 @@ const formatToday = () =>
     day: "2-digit",
   });
 
+  // 🕒 Returns "Good Morning/Afternoon/Evening" based on current hour
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+};
+
 // 📅 Format appointment date relative
 const formatAppointmentDate = (date) => {
   if (!date) return "";
@@ -134,6 +143,7 @@ const formatAppointmentDate = (date) => {
 
 export default function ProgramDashboard() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const programTitle = programTitles[id] || "Program";
 
   const [yogaType,        setYogaType]        = useState("normal_yoga");
@@ -141,6 +151,7 @@ export default function ProgramDashboard() {
   const [loadingVideo,    setLoadingVideo]    = useState(true);
   const [markingComplete, setMarkingComplete] = useState(false);
   const [nextAppointment, setNextAppointment] = useState(null);
+  const [userName, setUserName] = useState(""); // logged-in user's display name
 
   // 📥 Load video for current queue
   const loadVideo = useCallback(async () => {
@@ -176,6 +187,24 @@ export default function ProgramDashboard() {
     };
     load();
     return () => { mounted = false; };
+  }, []);
+
+  // 📥 Load the logged-in user's name for the greeting
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const profile = await fetchMyProfile();
+        if (mounted) {
+          setUserName(profile?.fullName || profile?.nickName || "");
+        }
+      } catch {
+        // soft fail — greeting shows without a name
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // ✅ Mark current video complete
@@ -219,9 +248,11 @@ export default function ProgramDashboard() {
                 <p className="text-orange-500 font-semibold text-sm mb-1">
                   {programTitle}
                 </p>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 leading-tight">
-                  Good Morning,{" "}
-                  <span className="text-orange-500">Anandadas</span>
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
+                  {getGreeting()},{" "}
+                  <span className="text-orange-500">
+                    {userName || "there"}
+                  </span>
                 </h2>
                 <p className="text-gray-400 text-sm mt-1">
                   Let's track your wellness journey for today
@@ -245,7 +276,10 @@ export default function ProgramDashboard() {
                   />
                 </div>
 
-                <button className="mt-5 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition-colors">
+                <button
+                  onClick={() => navigate(`/programs/${id}/add-progress`)}
+                  className="mt-5 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full shadow-[0_8px_20px_rgba(91,79,247,0.22)] transition-all duration-200"
+                >
                   <Plus size={15} />
                   Add Progress
                 </button>
@@ -365,58 +399,68 @@ export default function ProgramDashboard() {
           {/* ══════════════════════════════════════════════════ */}
           {/* 🧘 SUGGESTION CARDS                                */}
           {/* ══════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2">
-              {suggestions.map((s, idx) => {
-                const isActive = yogaType === s.id;
-                return (
-                  <div
-                    key={s.id}
-                    className={`flex flex-col items-center text-center px-8 py-8 ${
-                      idx === 0
-                        ? "border-b sm:border-b-0 sm:border-r border-orange-100"
-                        : ""
-                    }`}
-                  >
-                    {/* Tall portrait image — matches Figma */}
-                    <div className="w-44 h-56 mb-5 rounded-2xl overflow-hidden shadow-sm">
-                      <img
-                        src={s.image}
-                        alt={s.bold}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-gray-400 text-sm">{s.label}</p>
-                    <p className="text-gray-800 font-bold text-base mt-0.5">
-                      {s.bold}
-                    </p>
-                    <button
-                      onClick={() => handleSwitchQueue(s.id)}
-                      className={`mt-4 text-sm font-semibold px-12 py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.25)] ${
-                        isActive
-                          ? "bg-green-500 hover:bg-green-600 text-white"
-                          : "bg-orange-500 hover:bg-orange-600 text-white"
-                      }`}
-                    >
-                      {isActive ? "✓ Active" : "Start"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+         {/* ══════════════════════════════════════════════════ */}
+{/* 🧘 SUGGESTION CARDS                                */}
+{/* ══════════════════════════════════════════════════ */}
+<div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <div className="grid grid-cols-2 divide-x divide-orange-100">
+    {suggestions.map((s) => {
+      const isActive = yogaType === s.id;
+      const imgSrc =
+        s.id === "chair_yoga"
+          ? "/images/chairyogaimg.png"
+          : "/images/highintesityyogaimg.png";
 
-            {/* Back to Normal Yoga — only shown when on alt queue */}
-            {yogaType !== "normal_yoga" && (
-              <div className="text-center py-3 border-t border-gray-100">
-                <button
-                  onClick={() => handleSwitchQueue("normal_yoga")}
-                  className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:underline"
-                >
-                  ← Back to Normal Yoga
-                </button>
-              </div>
-            )}
+      return (
+        <div
+          key={s.id}
+          className="flex flex-col items-center text-center px-4 sm:px-8 py-6 sm:py-8"
+        >
+          {/* Image — tall portrait, rounded, matches Figma */}
+          <div className="w-32 h-44 sm:w-44 sm:h-56 mb-4 sm:mb-5 rounded-2xl overflow-hidden">
+            <img
+              src={imgSrc}
+              alt={s.bold}
+              className="w-full h-full object-cover object-top"
+            />
           </div>
+
+          {/* Text */}
+          <p className="text-gray-400 text-xs sm:text-sm leading-snug">
+            {s.label}
+          </p>
+          <p className="text-gray-800 font-bold text-sm sm:text-base mt-0.5">
+            {s.bold}
+          </p>
+
+          {/* CTA button */}
+          <button
+            onClick={() => handleSwitchQueue(s.id)}
+            className={`mt-4 text-sm font-semibold px-8 sm:px-12 py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.25)] ${
+              isActive
+                ? "bg-green-500 hover:bg-green-600 text-white"
+                : "bg-orange-500 hover:bg-orange-600 text-white"
+            }`}
+          >
+            {isActive ? "✓ Active" : "Start"}
+          </button>
+        </div>
+      );
+    })}
+  </div>
+
+  {/* Back to Normal Yoga — only shown when on alt queue */}
+  {yogaType !== "normal_yoga" && (
+    <div className="text-center py-3 border-t border-gray-100">
+      <button
+        onClick={() => handleSwitchQueue("normal_yoga")}
+        className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:underline"
+      >
+        ← Back to Normal Yoga
+      </button>
+    </div>
+  )}
+</div>
 
           {/* ══════════════════════════════════════════════════ */}
           {/* 🩺 NEXT DOCTOR CONSULTATION                        */}
