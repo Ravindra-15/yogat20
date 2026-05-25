@@ -25,8 +25,8 @@ const programTitles = {
 
 // 🧘 The 3 yoga queues (default = normal_yoga)
 const YOGA_TYPES = {
-  normal_yoga:    { id: "normal_yoga",    label: "Normal Yoga"       },
-  chair_yoga:     { id: "chair_yoga",     label: "Chair Yoga"        },
+  normal_yoga: { id: "normal_yoga", label: "Normal Yoga" },
+  chair_yoga: { id: "chair_yoga", label: "Chair Yoga" },
   high_intensity: { id: "high_intensity", label: "High Intensity Yoga" },
 };
 
@@ -36,20 +36,22 @@ const suggestions = [
     id: "chair_yoga",
     label: "Tired today ? Do some",
     bold: "Chair yoga then",
-    image: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400&q=80",
+    image:
+      "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400&q=80",
   },
   {
     id: "high_intensity",
     label: "Motivated Enough for",
     bold: "Daily Yoga",
-    image: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&q=80",
+    image:
+      "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&q=80",
   },
 ];
 
 // ─── Progress Ring (self-contained component, no overflow) ──────────────────
 function ProgressRing() {
-  const SIZE   = 200;
-  const CX     = 100;
+  const SIZE = 200;
+  const CX = 100;
   const STROKE = 13;
   const rings = [
     { label: "Sleep", color: "#F97316", value: 75, r: 84 },
@@ -73,7 +75,9 @@ function ProgressRing() {
             <g key={r}>
               {/* Track */}
               <circle
-                cx={CX} cy={CX} r={r}
+                cx={CX}
+                cy={CX}
+                r={r}
                 fill="none"
                 stroke={color}
                 strokeWidth={STROKE}
@@ -81,7 +85,9 @@ function ProgressRing() {
               />
               {/* Progress */}
               <circle
-                cx={CX} cy={CX} r={r}
+                cx={CX}
+                cy={CX}
+                r={r}
                 fill="none"
                 stroke={color}
                 strokeWidth={STROKE}
@@ -103,7 +109,9 @@ function ProgressRing() {
             />
             <span className="text-xs text-gray-500 font-medium">
               {label}{" "}
-              <span className="font-bold" style={{ color }}>{value}%</span>
+              <span className="font-bold" style={{ color }}>
+                {value}%
+              </span>
             </span>
           </div>
         ))}
@@ -120,7 +128,7 @@ const formatToday = () =>
     day: "2-digit",
   });
 
-  // 🕒 Returns "Good Morning/Afternoon/Evening" based on current hour
+// 🕒 Returns "Good Morning/Afternoon/Evening" based on current hour
 const getGreeting = () => {
   const hour = new Date().getHours();
   if (hour < 12) return "Good Morning";
@@ -134,7 +142,10 @@ const formatAppointmentDate = (date) => {
   const d = new Date(date);
   const now = new Date();
   const diffDays = Math.round((d - now) / (1000 * 60 * 60 * 24));
-  const timeStr = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  const timeStr = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   if (diffDays === 0) return `Today, ${timeStr}`;
   if (diffDays === 1) return `Tomorrow, ${timeStr}`;
   if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days, ${timeStr}`;
@@ -146,9 +157,9 @@ export default function ProgramDashboard() {
   const navigate = useNavigate();
   const programTitle = programTitles[id] || "Program";
 
-  const [yogaType,        setYogaType]        = useState("normal_yoga");
-  const [videoData,       setVideoData]       = useState(null);
-  const [loadingVideo,    setLoadingVideo]    = useState(true);
+  const [yogaType, setYogaType] = useState("normal_yoga");
+  const [videoData, setVideoData] = useState(null);
+  const [loadingVideo, setLoadingVideo] = useState(true);
   const [markingComplete, setMarkingComplete] = useState(false);
   const [nextAppointment, setNextAppointment] = useState(null);
   const [userName, setUserName] = useState(""); // logged-in user's display name
@@ -167,18 +178,23 @@ export default function ProgramDashboard() {
     }
   }, [id, yogaType]);
 
-  useEffect(() => { loadVideo(); }, [loadVideo]);
+  useEffect(() => {
+    loadVideo();
+  }, [loadVideo]);
 
   // 📥 Load next appointment (once on mount)
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const result = await listMyAppointments({ bucket: "upcoming", limit: 5 });
+        const result = await listMyAppointments({
+          bucket: "upcoming",
+          limit: 5,
+        });
         if (!mounted) return;
         const appointments = result?.appointments || [];
         const sorted = [...appointments].sort(
-          (a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt)
+          (a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt),
         );
         setNextAppointment(sorted[0] || null);
       } catch (err) {
@@ -186,7 +202,9 @@ export default function ProgramDashboard() {
       }
     };
     load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // 📥 Load the logged-in user's name for the greeting
@@ -209,7 +227,8 @@ export default function ProgramDashboard() {
 
   // ✅ Mark current video complete
   const handleMarkComplete = async () => {
-    if (!videoData?.video || videoData.completedToday || markingComplete) return;
+    if (!videoData?.video || videoData.completedToday || markingComplete)
+      return;
     setMarkingComplete(true);
     try {
       await markVideoComplete(videoData.video._id);
@@ -227,7 +246,7 @@ export default function ProgramDashboard() {
     setYogaType(newYogaType);
   };
 
-  const video          = videoData?.video;
+  const video = videoData?.video;
   const completedToday = videoData?.completedToday;
 
   return (
@@ -236,13 +255,11 @@ export default function ProgramDashboard() {
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
-
           {/* ══════════════════════════════════════════════════ */}
           {/* GREETING CARD + PROGRESS RING                      */}
           {/* ══════════════════════════════════════════════════ */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-7 sm:px-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-
               {/* Left */}
               <div className="flex-1 min-w-0">
                 <p className="text-orange-500 font-semibold text-sm mb-1">
@@ -250,23 +267,19 @@ export default function ProgramDashboard() {
                 </p>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
                   {getGreeting()},{" "}
-                  <span className="text-orange-500">
-                    {userName || "there"}
-                  </span>
+                  <span className="text-orange-500">{userName || "there"}</span>
                 </h2>
                 <p className="text-gray-400 text-sm mt-1">
                   Let's track your wellness journey for today
                 </p>
 
                 {/* Date box */}
-              <button
+                <button
                   onClick={() => navigate(`/programs/${id}/progress-report`)}
                   className="mt-5 bg-[#FFF7ED] border border-[#E7EAF3] rounded-2xl px-4 py-3 inline-flex items-center gap-4 w-full sm:w-auto text-left hover:border-orange-500 transition-colors"
                 >
                   <div>
-                    <p className="text-xs text-[#9CA3AF] mb-0.5">
-                      Today
-                    </p>
+                    <p className="text-xs text-[#9CA3AF] mb-0.5">Today</p>
                     <p className="font-bold text-[#1F2937] text-sm leading-tight">
                       {formatToday()}
                     </p>
@@ -315,7 +328,6 @@ export default function ProgramDashboard() {
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-start gap-5">
-
                 {/* Thumbnail */}
                 <a
                   href={video.videoUrl}
@@ -334,7 +346,11 @@ export default function ProgramDashboard() {
                   />
                   <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 flex items-center justify-center transition-colors">
                     <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
-                      <Play size={18} className="text-white ml-0.5" fill="white" />
+                      <Play
+                        size={18}
+                        className="text-white ml-0.5"
+                        fill="white"
+                      />
                     </div>
                   </div>
                 </a>
@@ -359,7 +375,9 @@ export default function ProgramDashboard() {
                     {video.title}
                   </p>
                   {video.duration && (
-                    <p className="text-xs text-gray-400 mt-1">{video.duration}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {video.duration}
+                    </p>
                   )}
 
                   <div className="flex flex-wrap gap-3 mt-4">
@@ -385,8 +403,8 @@ export default function ProgramDashboard() {
                       {completedToday
                         ? "Completed ✓"
                         : markingComplete
-                        ? "Saving..."
-                        : "Mark as Complete"}
+                          ? "Saving..."
+                          : "Mark as Complete"}
                     </button>
                   </div>
 
@@ -403,68 +421,74 @@ export default function ProgramDashboard() {
           {/* ══════════════════════════════════════════════════ */}
           {/* 🧘 SUGGESTION CARDS                                */}
           {/* ══════════════════════════════════════════════════ */}
-         {/* ══════════════════════════════════════════════════ */}
-{/* 🧘 SUGGESTION CARDS                                */}
-{/* ══════════════════════════════════════════════════ */}
-<div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-  <div className="grid grid-cols-2 divide-x divide-orange-100">
-    {suggestions.map((s) => {
-      const isActive = yogaType === s.id;
-      const imgSrc =
-        s.id === "chair_yoga"
-          ? "/images/chairyogaimg.png"
-          : "/images/highintesityyogaimg.png";
+          {/* ══════════════════════════════════════════════════ */}
+          {/* 🧘 SUGGESTION CARDS                                */}
+          {/* ══════════════════════════════════════════════════ */}
+          {/* ══════════════════════════════════════════════════ */}
+          {/* 🧘 SUGGESTION CARDS                                */}
+          {/* ══════════════════════════════════════════════════ */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="grid grid-cols-2 relative">
+              {/* Orange vertical divider — matches Figma exactly */}
+              <div className="absolute left-1/2 top-8 bottom-8 w-[2px] bg-orange-300 -translate-x-1/2 rounded-full z-10" />
 
-      return (
-        <div
-          key={s.id}
-          className="flex flex-col items-center text-center px-4 sm:px-8 py-6 sm:py-8"
-        >
-          {/* Image — tall portrait, rounded, matches Figma */}
-          <div className="w-32 h-44 sm:w-44 sm:h-56 mb-4 sm:mb-5 rounded-2xl overflow-hidden">
-            <img
-              src={imgSrc}
-              alt={s.bold}
-              className="w-full h-full object-cover object-top"
-            />
+              {suggestions.map((s) => {
+                const isActive = yogaType === s.id;
+                const imgSrc =
+                  s.id === "chair_yoga"
+                    ? "/images/chairyogaimg.png"
+                    : "/images/highintesityyogaimg.png";
+
+                return (
+                  <div
+                    key={s.id}
+                    className="flex flex-col items-center text-center px-4 sm:px-10 py-8 sm:py-10"
+                  >
+                    {/* Bigger image — no rounded box, just the illustration */}
+                    <div className="w-full h-32 sm:h-96 mb-5">
+                      <img
+                        src={imgSrc}
+                        alt={s.bold}
+                        className="w-full h-full object-contain mix-blend-multiply"
+                      />
+                    </div>
+
+                    {/* Text */}
+                    <p className="text-gray-400 text-xs sm:text-sm leading-snug">
+                      {s.label}
+                    </p>
+                    <p className="text-gray-800 font-bold text-sm sm:text-base mt-0.5">
+                      {s.bold}
+                    </p>
+
+                    {/* CTA button */}
+                    <button
+                      onClick={() => handleSwitchQueue(s.id)}
+                      className={`mt-4 text-sm font-semibold px-10 sm:px-14 py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.25)] ${
+                        isActive
+                          ? "bg-green-500 hover:bg-green-600 text-white"
+                          : "bg-orange-500 hover:bg-orange-600 text-white"
+                      }`}
+                    >
+                      {isActive ? "✓ Active" : "Start"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Back to Normal Yoga — only shown when on alt queue */}
+            {yogaType !== "normal_yoga" && (
+              <div className="text-center py-3 border-t border-gray-100">
+                <button
+                  onClick={() => handleSwitchQueue("normal_yoga")}
+                  className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:underline"
+                >
+                  ← Back to Normal Yoga
+                </button>
+              </div>
+            )}
           </div>
-
-          {/* Text */}
-          <p className="text-gray-400 text-xs sm:text-sm leading-snug">
-            {s.label}
-          </p>
-          <p className="text-gray-800 font-bold text-sm sm:text-base mt-0.5">
-            {s.bold}
-          </p>
-
-          {/* CTA button */}
-          <button
-            onClick={() => handleSwitchQueue(s.id)}
-            className={`mt-4 text-sm font-semibold px-8 sm:px-12 py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.25)] ${
-              isActive
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : "bg-orange-500 hover:bg-orange-600 text-white"
-            }`}
-          >
-            {isActive ? "✓ Active" : "Start"}
-          </button>
-        </div>
-      );
-    })}
-  </div>
-
-  {/* Back to Normal Yoga — only shown when on alt queue */}
-  {yogaType !== "normal_yoga" && (
-    <div className="text-center py-3 border-t border-gray-100">
-      <button
-        onClick={() => handleSwitchQueue("normal_yoga")}
-        className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:underline"
-      >
-        ← Back to Normal Yoga
-      </button>
-    </div>
-  )}
-</div>
 
           {/* ══════════════════════════════════════════════════ */}
           {/* 🩺 NEXT DOCTOR CONSULTATION                        */}
@@ -500,7 +524,6 @@ export default function ProgramDashboard() {
               </div>
             )}
           </div>
-
         </div>
       </main>
 

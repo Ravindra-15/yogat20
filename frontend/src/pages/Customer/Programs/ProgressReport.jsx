@@ -73,7 +73,7 @@ export default function ProgressReport() {
       <CustomerNavbar />
 
       <main className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
           {/* 🔙 Header */}
           <div className="flex items-center gap-3 mb-1">
@@ -132,7 +132,7 @@ export default function ProgressReport() {
               {/* ============================================ */}
               {/* 🗓️ MONTHLY SCHEDULE — accordion              */}
               {/* ============================================ */}
-              <div className="bg-[#EEF0FF] rounded-[24px] p-4 sm:p-6">
+              <div className="bg-[#FFF4ED] rounded-[24px] p-4 sm:p-6">
                 <h2 className="text-base sm:text-lg font-bold text-[#1F2937] mb-4">
                   Your Monthly Schedule
                 </h2>
