@@ -36,6 +36,7 @@ import ProgramSuccess from "./pages/Customer/Programs/ProgramSuccess";
 import ProgramDashboard from "./pages/Customer/Programs/ProgramDashboard";
 import ProtectedProgramRoute from "./components/common/ProtectedProgramRoute";
 import AddProgress from "./pages/Customer/Programs/AddProgress";
+import ProgressReport from "./pages/Customer/Programs/ProgressReport";
 
 import MyProfile from "./pages/Customer/MyProfile/MyProfile";
 import CustomerNotifications from "./pages/Customer/Notifications/Notifications";
@@ -207,6 +208,15 @@ function App() {
           element={
             <ProtectedProgramRoute>
               <AddProgress />
+            </ProtectedProgramRoute>
+          }
+        />
+
+        <Route
+          path="/programs/:id/progress-report"
+          element={
+            <ProtectedProgramRoute>
+              <ProgressReport />
             </ProtectedProgramRoute>
           }
         />

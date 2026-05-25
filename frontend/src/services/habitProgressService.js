@@ -73,3 +73,19 @@ export const saveHabitProgress = async (habitId, value) => {
   });
   return response.data;
 };
+
+// ============================================
+// 📊 GET PROGRESS REPORT (historical)
+// ============================================
+/**
+ * Fetches the user's progress report for a program —
+ * overall habit averages + monthly day-grid with color verdicts.
+ * @param {string} programId - yogat20 | diabmukt | mommyfit | slimfitter
+ * @returns Promise<{ habits, months }>
+ */
+export const getProgressReport = async (programId) => {
+  const response = await customerApi.get("/customer/habit-progress/report", {
+    params: { programId },
+  });
+  return response.data.data;
+};

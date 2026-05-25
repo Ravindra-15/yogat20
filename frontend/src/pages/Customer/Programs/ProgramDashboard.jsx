@@ -259,23 +259,27 @@ export default function ProgramDashboard() {
                 </p>
 
                 {/* Date box */}
-                <div className="mt-5 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 inline-flex items-center gap-4 w-full sm:w-auto">
+              <button
+                  onClick={() => navigate(`/programs/${id}/progress-report`)}
+                  className="mt-5 bg-[#FFF7ED] border border-[#E7EAF3] rounded-2xl px-4 py-3 inline-flex items-center gap-4 w-full sm:w-auto text-left hover:border-orange-500 transition-colors"
+                >
                   <div>
-                    <p className="text-xs text-gray-400 mb-0.5">Today</p>
-                    <p className="font-bold text-gray-800 text-sm leading-tight">
+                    <p className="text-xs text-[#9CA3AF] mb-0.5">
+                      Today
+                    </p>
+                    <p className="font-bold text-[#1F2937] text-sm leading-tight">
                       {formatToday()}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xm text-[#76787c] mt-1">
                       Click to view your past logs
                     </p>
                   </div>
                   <img
-                    src="https://cdn-icons-png.flaticon.com/512/2693/2693507.png"
+                    src="/images/calendar.png"
                     alt="calendar"
-                    className="w-10 h-10 object-contain shrink-0"
+                    className="w-20 h-20 object-contain shrink-0"
                   />
-                </div>
-
+                </button>
                 <button
                   onClick={() => navigate(`/programs/${id}/add-progress`)}
                   className="mt-5 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full shadow-[0_8px_20px_rgba(91,79,247,0.22)] transition-all duration-200"
