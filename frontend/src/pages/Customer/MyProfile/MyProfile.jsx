@@ -168,7 +168,12 @@ export default function MyProfile() {
       )
     : "—";
 
-  const fullPhone = user?.whatsapp ? `+${user.whatsapp}` : "—";
+  // const fullPhone = user?.whatsapp ? `+${user.whatsapp}` : "—";
+  const fullPhone = user?.whatsapp
+  ? `+${user.whatsapp}`
+  : user?.phone
+  ? `+${user.phone}`
+  : "—";
 
   // ============================================
   // ⏳ LOADING
