@@ -64,7 +64,7 @@ export default function SelectTenure() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900/80 flex items-center justify-center px-4 py-12">
+    <div className="fixed inset-0 z-50 bg-gray-900/80 flex items-center justify-center px-4 py-12 overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg px-8 py-10">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">

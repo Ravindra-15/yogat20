@@ -76,7 +76,7 @@ export default function ProgramCheckout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-500/60 flex items-center justify-center px-4 py-10">
+    <div className="fixed inset-0 z-50 bg-gray-500/60 flex items-center justify-center px-4 py-10 overflow-y-auto">
       <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-3xl overflow-hidden border border-gray-100">
 
         {/* HEADER */}
