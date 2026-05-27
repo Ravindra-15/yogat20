@@ -172,7 +172,6 @@ const BookDoctor = () => {
     prevPage,
     clearFilters,
   } = useCustomerDoctors({ initialLimit: 10 });
-
   // ============================================
   // 🎉 Welcome Popup Logic
   // ============================================
