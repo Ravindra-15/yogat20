@@ -111,11 +111,11 @@ const Signup = () => {
         {/* LEFT */}
         <div className="max-w-md mx-auto md:mx-0 text-center md:text-left px-2">
           <h1 className="text-[38px] md:text-[52px] font-semibold text-teal-900 leading-[1.15]">
-            Your Wellness <br />
-            <span className="text-orange-500">Journey Begins</span>
-          </h1>
+  Your Wellness <br />
+  <span className="text-orange-500">Journey Begins</span>
+</h1>
 
-          <p className="mt-4 text-gray-600 text-[14px] leading-[1.6] max-w-[420px] mx-auto md:mx-0">
+          <p className="mt-4 text-gray-600 text-[20px] leading-[1.6] max-w-[420px] mx-auto md:mx-0">
             Join thousands building sustainable health habits through
             expert-guided programs
           </p>
