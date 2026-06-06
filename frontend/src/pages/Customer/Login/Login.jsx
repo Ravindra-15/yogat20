@@ -133,7 +133,9 @@ const Login = () => {
         } else if (!profileStepTwoComplete) {
           navigate("/profile-step-2");
         } else {
-          navigate(next?.startsWith("/") ? next : "/home");
+          navigate(next?.startsWith("/") ? next : "/book-doctor", {
+            replace: true,
+          });
         }
       }, 300);
     } catch (err) {
