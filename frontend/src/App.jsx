@@ -40,7 +40,6 @@ import ProgramDashboard from "./pages/Customer/Programs/ProgramDashboard";
 import ProtectedProgramRoute from "./components/common/ProtectedProgramRoute";
 import AddProgress from "./pages/Customer/Programs/AddProgress";
 import ProgressReport from "./pages/Customer/Programs/ProgressReport";
-
 import MyProfile from "./pages/Customer/MyProfile/MyProfile";
 import CustomerNotifications from "./pages/Customer/Notifications/Notifications";
 import MyPlansAndBillings from "./pages/Customer/MyPlansAndBillings/MyPlansAndBillings";
