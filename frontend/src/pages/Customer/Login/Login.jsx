@@ -7,6 +7,9 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import { useAuth } from "../../../context/AuthContext";
 
+import { useGoogleLogin } from "@react-oauth/google";
+import { googleAuth } from "../../../services/authService";
+
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -154,6 +157,52 @@ const Login = () => {
   };
 
   // ============================================
+  // 🔵 GOOGLE LOGIN
+  // ============================================
+  const handleGoogleSuccess = async (accessToken) => {
+    try {
+      setLoading(true);
+
+      const { data } = await googleAuth({ accessToken });
+
+      login(data.data.token, true);
+      localStorage.setItem("user", JSON.stringify(data.data.user));
+
+      toast.success("Welcome!");
+      sessionStorage.removeItem("welcomeShown");
+
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next");
+      const user = data.data.user;
+
+      const profileStepOneComplete = user?.fullName && user?.nickName;
+      const profileStepTwoComplete = user?.dob && user?.country && user?.city;
+
+      setTimeout(() => {
+        if (!profileStepOneComplete) {
+          navigate("/profile-step-1");
+        } else if (!profileStepTwoComplete) {
+          navigate("/profile-step-2");
+        } else {
+          navigate(next?.startsWith("/") ? next : "/book-doctor", {
+            replace: true,
+          });
+        }
+      }, 300);
+    } catch (err) {
+      const message = err?.response?.data?.message || "Google sign-in failed";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: (tokenResponse) => handleGoogleSuccess(tokenResponse.access_token),
+    onError: () => toast.error("Google sign-in failed"),
+  });
+
+  // ============================================
   // 🎨 UI
   // ============================================
   return (
@@ -261,7 +310,12 @@ const Login = () => {
             </div>
 
             {/* GOOGLE */}
-            <button className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-2 text-[14px] font-medium hover:bg-gray-50">
+            <button
+              type="button"
+              onClick={() => googleLogin()}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-2 text-[14px] font-medium hover:bg-gray-50 disabled:opacity-50"
+            >
               <GoogleIcon />
               Continue with Google
             </button>
