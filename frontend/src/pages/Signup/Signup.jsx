@@ -12,6 +12,8 @@ import { Link } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 import { googleAuth } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
+import { hasActiveProgramSubscription } from "../../utils/subscriptionCheck";
+import { PROGRAM_ID } from "../../utils/programConfig";
 
 /* Icons */
 const EyeOpen = () => (
@@ -124,17 +126,33 @@ const Signup = () => {
       toast.success("Welcome!");
       sessionStorage.removeItem("welcomeShown");
 
-      const user = data.data.user;
+     const user = data.data.user;
       const profileStepOneComplete = user?.fullName && user?.nickName;
       const profileStepTwoComplete = user?.dob && user?.country && user?.city;
 
-      setTimeout(() => {
+      // preserve next (e.g. tenure) through profile steps
+      const stepOneUrl = nextPath
+        ? `/profile-step-1?next=${encodeURIComponent(nextPath)}`
+        : "/profile-step-1";
+      const stepTwoUrl = nextPath
+        ? `/profile-step-2?next=${encodeURIComponent(nextPath)}`
+        : "/profile-step-2";
+
+      // decide destination: next wins, else dashboard if subscribed, else landing
+      const resolveDestination = async () => {
+        if (nextPath?.startsWith("/")) return nextPath;
+        const subscribed = await hasActiveProgramSubscription();
+        return subscribed ? `/programs/${PROGRAM_ID}/dashboard` : "/";
+      };
+
+      setTimeout(async () => {
         if (!profileStepOneComplete) {
-          navigate("/profile-step-1");
+          navigate(stepOneUrl);
         } else if (!profileStepTwoComplete) {
-          navigate("/profile-step-2");
+          navigate(stepTwoUrl);
         } else {
-          navigate("/book-doctor", { replace: true });
+          const dest = await resolveDestination();
+          navigate(dest, { replace: true });
         }
       }, 300);
     } catch (err) {
@@ -277,10 +295,10 @@ const Signup = () => {
               <FacebookIcon />
               Continue with Facebook
             </button>
-            <p className="text-[13px] text-gray-500 text-center mt-2">
+            <p className="text-[13px] text-[#6B7280] text-center mt-2">
               Already have an account?{" "}
               <Link
-                to="/login"
+                to={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"}
                 className="text-orange-500 font-medium hover:underline"
               >
                 Log in

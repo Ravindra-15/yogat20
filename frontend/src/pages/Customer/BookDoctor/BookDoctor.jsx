@@ -185,12 +185,7 @@ const BookDoctor = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
-    const alreadyShown = sessionStorage.getItem("welcomeShown");
-
-    if (!alreadyShown) {
-      setOpen(true);
-      sessionStorage.setItem("welcomeShown", "true");
-    }
+    // welcome modal disabled for subprograms — popup no longer opens
 
     // Load user for the welcome modal avatar
     (async () => {
@@ -331,9 +326,8 @@ const BookDoctor = () => {
           </div>
 
           <p className="text-sm text-gray-600 leading-relaxed mb-6">
-            Discover expert doctors, wellness programs,
-            and personalized healing journeys —
-            all in one place.
+            Discover expert doctors, wellness programs, and personalized healing
+            journeys — all in one place.
           </p>
 
           <Button
