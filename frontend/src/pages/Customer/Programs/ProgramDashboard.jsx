@@ -2,9 +2,10 @@
 // Daily video tracker with dynamic queue + 24hr cooldown logic
 // Uses real clinical videos from admin CMS + real upcoming appointment
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Play, Check, Plus, Bell, Calendar } from "lucide-react";
+import { Play, Check, Plus, Bell, Calendar, ChevronUp } from "lucide-react";
+import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
@@ -156,6 +157,15 @@ export default function ProgramDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
   const programTitle = programTitles[id] || "Program";
+  // 📈 inline Add-Progress expand state
+  const [showProgress, setShowProgress] = useState(false);
+  const topRef = useRef(null); // scroll target after saving
+
+  // called after habits saved → collapse + scroll user to top
+  const handleProgressSaved = () => {
+    setShowProgress(false);
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const [yogaType, setYogaType] = useState("normal_yoga");
   const [videoData, setVideoData] = useState(null);
@@ -258,7 +268,7 @@ export default function ProgramDashboard() {
           {/* ══════════════════════════════════════════════════ */}
           {/* GREETING CARD + PROGRESS RING                      */}
           {/* ══════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-7 sm:px-8">
+          <div ref={topRef} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-7 sm:px-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               {/* Left */}
               <div className="flex-1 min-w-0">
@@ -294,17 +304,35 @@ export default function ProgramDashboard() {
                   />
                 </button>
                 <button
-                  onClick={() => navigate(`/programs/${id}/add-progress`)}
+                  onClick={() => setShowProgress((v) => !v)}
                   className="mt-5 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full shadow-[0_8px_20px_rgba(91,79,247,0.22)] transition-all duration-200"
                 >
-                  <Plus size={15} />
-                  Add Progress
+                  {showProgress ? <ChevronUp size={15} /> : <Plus size={15} />}
+                  {showProgress ? "Hide Progress" : "Add Progress"}
                 </button>
               </div>
 
               {/* Right — progress ring fully inside the card */}
               <div className="shrink-0 mx-auto sm:mx-0">
                 <ProgressRing />
+              </div>
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════════════ */}
+          {/* 📈 INLINE ADD-PROGRESS (animated expand)            */}
+          {/* ══════════════════════════════════════════════════ */}
+          <div
+            className={`grid transition-all duration-300 ease-in-out ${
+              showProgress ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+           <div className="overflow-hidden">
+              <div className="pt-1 pb-1">
+                <p className="text-sm font-bold text-gray-800 mb-3 px-1">
+                  Log Today's Progress
+                </p>
+                <HabitTrackerForm programId={id} onSaved={handleProgressSaved} />
               </div>
             </div>
           </div>
