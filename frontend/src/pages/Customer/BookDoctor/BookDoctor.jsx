@@ -184,8 +184,13 @@ const BookDoctor = () => {
   const fileInputRef = useRef(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  useEffect(() => {
-    // welcome modal disabled for subprograms — popup no longer opens
+useEffect(() => {
+    const alreadyShown = sessionStorage.getItem("welcomeShown");
+
+    if (!alreadyShown) {
+      setOpen(true);
+      sessionStorage.setItem("welcomeShown", "true");
+    }
 
     // Load user for the welcome modal avatar
     (async () => {
@@ -332,7 +337,7 @@ const BookDoctor = () => {
 
           <Button
             type="button"
-            text="Start Exploring Doctors"
+            text="Consult a Fitness Coach"
             onClick={() => setOpen(false)}
           />
 

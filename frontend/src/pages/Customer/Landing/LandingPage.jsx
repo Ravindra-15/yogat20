@@ -14,13 +14,13 @@ import ProgramsSection from "./sections/ProgramsSection";
 import FAQSection from "./sections/FAQSection";
 import CallbackSection from "./sections/CallbackSection";
 import ReferAndEarnSection from "./sections/ReferAndEarnSection";
-// import WelcomePopup from "./components/WelcomePopup";
+import WelcomePopup from "./components/WelcomePopup";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <CustomerNavbar />
-      {/* <WelcomePopup /> */}
+      <WelcomePopup />
 
       <main className="flex-1 w-full">
         <HeroSection />
