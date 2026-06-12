@@ -221,7 +221,7 @@ const CustomerNavbar = () => {
                     onClick={handleAddProgressClick}
                     className="
                       relative text-sm font-medium tracking-wide whitespace-nowrap
-                      text-gray-600 hover:text-teal-700
+                      text-gray-600 hover:text-orange-500
                       transition-all duration-300 hover:-translate-y-[1px]
                       after:absolute after:left-0 after:-bottom-1
                       after:h-[2px] after:w-0 after:bg-orange-500 after:rounded-full
@@ -237,7 +237,7 @@ const CustomerNavbar = () => {
                     onClick={handleHomeClick}
                     className="
                       relative text-sm font-medium tracking-wide whitespace-nowrap
-                      text-gray-600 hover:text-teal-700
+                      text-gray-600 hover:text-orange-500
                       transition-all duration-300 hover:-translate-y-[1px]
                       after:absolute after:left-0 after:-bottom-1
                       after:h-[2px] after:w-0 after:bg-orange-500 after:rounded-full
@@ -253,7 +253,7 @@ const CustomerNavbar = () => {
                     onClick={handleProgramsClick}
                     className="
                       relative text-sm font-medium tracking-wide whitespace-nowrap
-                      text-gray-600 hover:text-teal-700
+                      text-gray-600 hover:text-orange-500
                       transition-all duration-300 hover:-translate-y-[1px]
                       after:absolute after:left-0 after:-bottom-1
                       after:h-[2px] after:w-0 after:bg-orange-500 after:rounded-full
@@ -273,11 +273,7 @@ const CustomerNavbar = () => {
                       after:h-[2px] after:w-0
                       after:bg-orange-500 after:rounded-full
                       after:transition-all after:duration-300
-                      hover:after:w-full ${
-                        isActive
-                          ? "text-teal-700"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`
+                     hover:after:w-full text-gray-600 hover:text-orange-500`
                     }
                   >
                     {link.label}
@@ -361,7 +357,7 @@ const CustomerNavbar = () => {
                     key="add-progress-m"
                     href={link.to}
                     onClick={handleAddProgressClick}
-                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-teal-50 hover:text-teal-700 transition-all duration-300"
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-orange-50 hover:text-orange-500 transition-all duration-300"
                   >
                     {link.label}
                   </a>
@@ -370,7 +366,7 @@ const CustomerNavbar = () => {
                     key="home-mobile"
                     href={link.to}
                     onClick={handleHomeClick}
-                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-teal-50 hover:text-teal-700 transition-all duration-300"
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-orange-50 hover:text-orange-500 transition-all duration-300"
                   >
                     {link.label}
                   </a>
@@ -394,13 +390,7 @@ const CustomerNavbar = () => {
                     key={link.to}
                     to={link.to}
                     onClick={closeMobile}
-                    className={({ isActive }) =>
-                      `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-teal-50 text-teal-700"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`
-                    }
+                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-50"
                   >
                     {link.label}
                   </NavLink>
