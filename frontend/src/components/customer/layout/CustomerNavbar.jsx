@@ -6,8 +6,11 @@ import React, { useState, useContext, useEffect, useRef, useMemo } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 
 import { Menu, X, Bell } from "lucide-react";
+import toast from "react-hot-toast";
 
 import AuthContext from "../../../context/AuthContext";
+import { hasActiveProgramSubscription } from "../../../utils/subscriptionCheck";
+import { PROGRAM_ID } from "../../../utils/programConfig";
 
 // ============================================
 // 🔗 NAV LINK CONFIGS
@@ -31,26 +34,67 @@ const CustomerNavbar = () => {
 
   const auth = useContext(AuthContext) || {};
 
-const isLoggedIn = !!auth?.token;
+  const isLoggedIn = !!auth?.token;
 
-// Safe parse with try-catch (prevents crash on bad/null storage values)
-const getStoredUser = () => {
-  try {
-    const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+  // Safe parse with try-catch (prevents crash on bad/null storage values)
+  const getStoredUser = () => {
+    try {
+      const raw =
+        localStorage.getItem("user") || sessionStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
 
-const storedUser = useMemo(() => getStoredUser(), [auth?.token]);
+  const storedUser = useMemo(() => getStoredUser(), [auth?.token]);
 
-const profileCompleted = !!(
-  storedUser?.fullName &&
-  storedUser?.dob &&
-  storedUser?.country &&
-  storedUser?.city
-);
+  const profileCompleted = !!(
+    storedUser?.fullName &&
+    storedUser?.dob &&
+    storedUser?.country &&
+    storedUser?.city
+  );
+
+  // 🎟️ subscription status — gates Home(→dashboard) + Add Progress links
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!isLoggedIn) {
+      setIsSubscribed(false);
+      return;
+    }
+    (async () => {
+      const ok = await hasActiveProgramSubscription();
+      if (mounted) setIsSubscribed(ok);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isLoggedIn]);
+
+  // dashboard path for this program
+  const dashboardPath = `/programs/${PROGRAM_ID}/dashboard`;
+
+  // Home click — subscribed → dashboard; logged-in unsubscribed → toast; else landing
+  const handleHomeClick = (e) => {
+    if (!isLoggedIn) return; // logged out → let the link go to /home normally
+    e.preventDefault();
+    closeMobile();
+    if (isSubscribed) {
+      navigate(dashboardPath);
+    } else {
+      toast.error("Purchase a plan to unlock the video dashboard");
+    }
+  };
+
+  // Add Progress click — go to dashboard and auto-open the habit form
+  const handleAddProgressClick = (e) => {
+    e.preventDefault();
+    closeMobile();
+    navigate(`${dashboardPath}?openProgress=1`);
+  };
   // ============================================
   // 🚫 HIDE AUTH UI ON AUTH PAGES
   // ============================================
@@ -67,34 +111,48 @@ const profileCompleted = !!(
 
   const drawerRef = useRef(null);
 
-  const links = isLoggedIn && profileCompleted ? PRIVATE_LINKS : PUBLIC_LINKS;
+  // base links by auth state
+  const baseLinks =
+    isLoggedIn && profileCompleted ? PRIVATE_LINKS : PUBLIC_LINKS;
+
+  // subscribed users get an extra "Add Progress" link
+  const links = isSubscribed
+    ? [
+        ...baseLinks,
+        { to: dashboardPath, label: "Add Progress", isAddProgress: true },
+      ]
+    : baseLinks;
 
   const closeMobile = () => setMobileOpen(false);
 
   // Scroll to #programs after we've landed on /home
-useEffect(() => {
-  if (location.pathname === "/home" && location.hash === "#programs") {
-    // wait a tick so the section is mounted
-    const id = setTimeout(() => {
-      document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
-    }, 50);
-    return () => clearTimeout(id);
-  }
-}, [location.pathname, location.hash]);
+  useEffect(() => {
+    if (location.pathname === "/home" && location.hash === "#programs") {
+      // wait a tick so the section is mounted
+      const id = setTimeout(() => {
+        document
+          .getElementById("programs")
+          ?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
+      return () => clearTimeout(id);
+    }
+  }, [location.pathname, location.hash]);
 
-const handleProgramsClick = (e) => {
-  e.preventDefault();
-  closeMobile();
-  if (location.pathname === "/home") {
-    // already on home → just scroll
-    document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" });
-    // keep hash in sync (optional)
-    navigate("/home#programs", { replace: true });
-  } else {
-    // different page → navigate, effect above handles the scroll
-    navigate("/home#programs");
-  }
-};
+  const handleProgramsClick = (e) => {
+    e.preventDefault();
+    closeMobile();
+    if (location.pathname === "/home") {
+      // already on home → just scroll
+      document
+        .getElementById("programs")
+        ?.scrollIntoView({ behavior: "smooth" });
+      // keep hash in sync (optional)
+      navigate("/home#programs", { replace: true });
+    } else {
+      // different page → navigate, effect above handles the scroll
+      navigate("/home#programs");
+    }
+  };
 
   // ============================================
   // ✅ CLOSE ON SCROLL
@@ -149,27 +207,55 @@ const handleProgramsClick = (e) => {
             {/* 🖥️ DESKTOP LINKS */}
             <div className="hidden lg:flex items-center justify-center gap-48 flex-1">
               {links.map((link) =>
-  link.to.includes("#") ? (
-    <a
-      key={link.to}
-      href={link.to}
-      onClick={handleProgramsClick}
-      className="
-        relative text-sm font-medium tracking-wide
-        text-gray-600 hover:text-teal-700
-        transition-all duration-300
-        hover:-translate-y-[1px]
-        after:absolute after:left-0 after:-bottom-1
-        after:h-[2px] after:w-0
-        after:bg-orange-500
-        after:rounded-full
-        after:transition-all after:duration-300
-        hover:after:w-full
-      "
-    >
-      {link.label}
-    </a>
-  ) : (
+                link.isAddProgress ? (
+                  <a
+                    key="add-progress"
+                    href={link.to}
+                    onClick={handleAddProgressClick}
+                    className="
+                      relative text-sm font-medium tracking-wide
+                      text-gray-600 hover:text-teal-700
+                      transition-all duration-300 hover:-translate-y-[1px]
+                      after:absolute after:left-0 after:-bottom-1
+                      after:h-[2px] after:w-0 after:bg-orange-500 after:rounded-full
+                      after:transition-all after:duration-300 hover:after:w-full
+                    "
+                  >
+                    {link.label}
+                  </a>
+                ) : link.label === "Home" ? (
+                  <a
+                    key="home-desktop"
+                    href={link.to}
+                    onClick={handleHomeClick}
+                    className="
+                      relative text-sm font-medium tracking-wide
+                      text-gray-600 hover:text-teal-700
+                      transition-all duration-300 hover:-translate-y-[1px]
+                      after:absolute after:left-0 after:-bottom-1
+                      after:h-[2px] after:w-0 after:bg-orange-500 after:rounded-full
+                      after:transition-all after:duration-300 hover:after:w-full
+                     "
+                  >
+                    {link.label}
+                  </a>
+                ) : link.to.includes("#") ? (
+                  <a
+                    key={link.to}
+                    href={link.to}
+                    onClick={handleProgramsClick}
+                    className="
+                      relative text-sm font-medium tracking-wide
+                      text-gray-600 hover:text-teal-700
+                      transition-all duration-300 hover:-translate-y-[1px]
+                      after:absolute after:left-0 after:-bottom-1
+                      after:h-[2px] after:w-0 after:bg-orange-500 after:rounded-full
+                      after:transition-all after:duration-300 hover:after:w-full
+                    "
+                  >
+                    {link.label}
+                  </a>
+                ) : (
                   <NavLink
                     key={link.to}
                     to={link.to}
@@ -263,22 +349,40 @@ const handleProgramsClick = (e) => {
           <div className="lg:hidden border-t border-gray-100 bg-white">
             <div className="px-4 py-3 flex flex-col gap-1">
               {links.map((link) =>
-  link.to.includes("#") ? (
-    <a
-      key={link.to}
-      href={link.to}
-      onClick={handleProgramsClick}
-      className="
-        px-3 py-2 rounded-lg text-sm font-medium
-        text-gray-600
-        hover:bg-teal-50
-        hover:text-teal-700
-        transition-all duration-300
-      "
-    >
-      {link.label}
-    </a>
-  ) : (
+                link.isAddProgress ? (
+                  <a
+                    key="add-progress-m"
+                    href={link.to}
+                    onClick={handleAddProgressClick}
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-teal-50 hover:text-teal-700 transition-all duration-300"
+                  >
+                    {link.label}
+                  </a>
+                ) : link.label === "Home" ? (
+                  <a
+                    key="home-mobile"
+                    href={link.to}
+                    onClick={handleHomeClick}
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-teal-50 hover:text-teal-700 transition-all duration-300"
+                  >
+                    {link.label}
+                  </a>
+                ) : link.to.includes("#") ? (
+                  <a
+                    key={link.to}
+                    href={link.to}
+                    onClick={handleProgramsClick}
+                    className="
+                    px-3 py-2 rounded-lg text-sm font-medium
+                    text-gray-600
+                    hover:bg-teal-50
+                    hover:text-teal-700
+                    transition-all duration-300
+                  "
+                  >
+                    {link.label}
+                  </a>
+                ) : (
                   <NavLink
                     key={link.to}
                     to={link.to}
