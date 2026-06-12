@@ -246,15 +246,15 @@ useEffect(() => {
       <main className="flex-1">
         <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-10 space-y-8">
           {/* 🟧 Hero + specialty chips */}
-          <HeroSearch
-            search={search}
-            onSearchChange={setSearch}
-            specialty={specialty}
-            onSpecialtyChange={setSpecialty}
-          />
+          <div id="search-top">
+            <HeroSearch
+              search={search}
+              onSearchChange={setSearch}
+              specialty={specialty}
+              onSpecialtyChange={setSpecialty}
+            />
+          </div>
 
-          {/* 📋 How to book */}
-          <HowToBook />
           {/* 🩺 Doctor list */}
           <DoctorList
             doctors={doctors}
@@ -264,6 +264,11 @@ useEffect(() => {
             onNext={nextPage}
             onClearFilters={clearFilters}
           />
+
+          {/* 📋 How to book — moved below doctor list */}
+          <div id="how-to-book">
+            <HowToBook />
+          </div>
 
           {/* ❓ FAQ */}
           <FAQSection />
