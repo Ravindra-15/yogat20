@@ -3,7 +3,7 @@
 // Uses real clinical videos from admin CMS + real upcoming appointment
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Play, Check, Plus, Bell, Calendar, ChevronUp } from "lucide-react";
 import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
@@ -157,15 +157,33 @@ export default function ProgramDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
   const programTitle = programTitles[id] || "Program";
-  // 📈 inline Add-Progress expand state
+ // 📈 inline Add-Progress expand state
   const [showProgress, setShowProgress] = useState(false);
   const topRef = useRef(null); // scroll target after saving
+  const progressRef = useRef(null); // scroll target when auto-opening from navbar
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // called after habits saved → collapse + scroll user to top
   const handleProgressSaved = () => {
     setShowProgress(false);
     topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  // auto-open the habit form + scroll to it when arriving with ?openProgress=1
+  useEffect(() => {
+    if (searchParams.get("openProgress") === "1") {
+      setShowProgress(true);
+      // clear the param so refresh/back doesn't re-trigger
+      searchParams.delete("openProgress");
+      setSearchParams(searchParams, { replace: true });
+      // wait for expand animation to start, then scroll to the form
+      const t = setTimeout(() => {
+        progressRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 250);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams, setSearchParams]);
 
   const [yogaType, setYogaType] = useState("normal_yoga");
   const [videoData, setVideoData] = useState(null);
@@ -323,10 +341,11 @@ export default function ProgramDashboard() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════ */}
+         {/* ══════════════════════════════════════════════════ */}
           {/* 📈 INLINE ADD-PROGRESS (animated expand)            */}
           {/* ══════════════════════════════════════════════════ */}
           <div
+            ref={progressRef}
             className={`grid transition-all duration-300 ease-in-out ${
               showProgress ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
             }`}
