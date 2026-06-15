@@ -640,7 +640,7 @@ export default function ProgramDashboard() {
                     <Gift size={16} className="text-white shrink-0" />
                     <p className="text-sm font-semibold text-white">
                       Book Your Free Doctor Consultation
-                      {planCreditsLeft > 1 ? `s (${planCreditsLeft} left)` : ""}.
+                      {planCreditsLeft > 1 ? "s" : ""} ({planCreditsLeft} left).
                     </p>
                   </div>
                 )}
