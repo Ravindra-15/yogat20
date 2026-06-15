@@ -5,7 +5,7 @@
  * programId comes from props — nothing hardcoded.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 
 import {
@@ -33,6 +33,8 @@ const HabitTrackerForm = ({ programId, onSaved }) => {
   const [values, setValues] = useState({}); // habitId → current slider value
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showThanks, setShowThanks] = useState(false); // success confirmation popup
+  const thanksTimerRef = useRef(null); // auto-close timer for the popup
 
   // 📥 Load active habits + today's already-logged values
   const loadHabits = useCallback(async () => {
@@ -73,13 +75,24 @@ const HabitTrackerForm = ({ programId, onSaved }) => {
       for (const habit of habits) {
         await saveHabitProgress(habit._id, values[habit._id]);
       }
-      toast.success("Progress saved for today!");
-      onSaved?.(); // let parent decide what happens next
+      // 🎉 confirmation popup — stays visible, THEN collapse/scroll after 3s
+      setShowThanks(true);
+      thanksTimerRef.current = setTimeout(() => {
+        setShowThanks(false);
+        onSaved?.(); // collapse + scroll after popup is seen
+      }, 3000);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to save progress");
     } finally {
       setSaving(false);
     }
+  };
+
+  // Closes the popup early → collapse/scroll immediately
+  const handleCloseThanks = () => {
+    if (thanksTimerRef.current) clearTimeout(thanksTimerRef.current);
+    setShowThanks(false);
+    onSaved?.(); // collapse + scroll right away
   };
 
   // ⏳ Loading state
@@ -105,6 +118,44 @@ const HabitTrackerForm = ({ programId, onSaved }) => {
 
   return (
     <div className="space-y-4">
+      {/* 🎉 SUCCESS CONFIRMATION POPUP (auto-closes) */}
+      {showThanks && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md px-8 py-10 text-center relative animate-[fadeIn_0.2s_ease-out]">
+            {/* close */}
+            <button
+              type="button"
+              onClick={handleCloseThanks}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            {/* celebratory icon badge */}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center mx-auto mb-5 ring-8 ring-orange-50/60">
+              <span className="text-4xl">🎉</span>
+            </div>
+
+            {/* message */}
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+              Thank you for today's update!
+            </h3>
+            <p className="text-sm sm:text-base text-gray-500 leading-relaxed max-w-xs mx-auto">
+              Your progress has been saved. Keep up the great work —
+              see you tomorrow! 🌱
+            </p>
+
+            {/* subtle divider + footer line */}
+            <div className="mt-6 pt-5 border-t border-gray-100">
+              <p className="text-xs text-gray-400">
+                Consistency is the key to results.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {habits.map((habit) => {
         const { min, max, avg } = getRange(habit);
         const current = values[habit._id] ?? avg;
