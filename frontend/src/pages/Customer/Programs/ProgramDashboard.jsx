@@ -6,7 +6,16 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Play, Plus, Bell, Calendar, ChevronUp } from "lucide-react";
+import {
+  Play,
+  Plus,
+  Bell,
+  Calendar,
+  ChevronUp,
+  Stethoscope,
+  Lock,
+  Gift,
+} from "lucide-react";
 import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
@@ -17,6 +26,7 @@ import {
 } from "../../../services/clinicalVideoService";
 import { listMyAppointments } from "../../../services/customerAppointmentService";
 import { fetchMyProfile } from "../../../services/customerProfileService";
+import { fetchMySubscription } from "../../../services/customerBillingService";
 
 const programTitles = {
   yogat20: "Yoga T20",
@@ -159,6 +169,21 @@ const formatAppointmentDate = (date) => {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${timeStr}`;
 };
 
+// 🎁 Free consultations entitled by plan tenure.
+// Monthly: floor(months/3). Weekly: floor(weeks/12). Capped at 4 for display.
+const entitlementFromSubscription = (sub) => {
+  if (!sub || !sub.isActive) return 0;
+  // weekly tenure like "24 Weeks"
+  const weekMatch = String(sub.tenure || "").match(/(\d+)\s*week/i);
+  if (weekMatch)
+    return Math.min(4, Math.floor(parseInt(weekMatch[1], 10) / 12));
+  // monthly tenure like "6 Months" (fallback to totalWeeks if present)
+  const monthMatch = String(sub.tenure || "").match(/(\d+)\s*month/i);
+  if (monthMatch)
+    return Math.min(4, Math.floor(parseInt(monthMatch[1], 10) / 3));
+  return 0;
+};
+
 export default function ProgramDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -204,6 +229,12 @@ export default function ProgramDashboard() {
   const [nextAppointment, setNextAppointment] = useState(null);
   const [userName, setUserName] = useState(""); // logged-in user's display name
 
+  // 🩺 free-consultation cards state
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]); // plan-credit bookings only
+  const [allUpcoming, setAllUpcoming] = useState([]); // every upcoming appointment
+  const [entitlement, setEntitlement] = useState(0); // total free-consult slots by plan
+  const [planCreditsLeft, setPlanCreditsLeft] = useState(0); // remaining planFreeConsults
+
   // 📥 Load the current video for all three queues at once.
   // Pre-fetching is required so window.open() on click is synchronous and
   // does NOT get blocked by the browser's popup blocker.
@@ -236,16 +267,30 @@ export default function ProgramDashboard() {
     let mounted = true;
     const load = async () => {
       try {
+        // fetch ALL appointments so cancelled/completed free consults still hold a card
         const result = await listMyAppointments({
-          bucket: "upcoming",
-          limit: 5,
+          bucket: "all",
+          limit: 50,
         });
         if (!mounted) return;
         const appointments = result?.appointments || [];
-        const sorted = [...appointments].sort(
-          (a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt),
-        );
-        setNextAppointment(sorted[0] || null);
+
+        // free-consult appointments for THIS program (any state) → fill cards, oldest first
+        const planAppts = appointments
+          .filter((a) => a.paidWithPlanCredit && a.platform === id)
+          .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+        setUpcomingAppointments(planAppts);
+
+        // upcoming (any booking, not cancelled) → separate "Upcoming Appointment" card
+        const upcoming = appointments
+          .filter(
+            (a) =>
+              new Date(a.scheduledAt) >= new Date() &&
+              ["pending", "confirmed"].includes(a.status)
+          )
+          .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+        setNextAppointment(upcoming[0] || null);
+        setAllUpcoming(upcoming);
       } catch (err) {
         console.error("Failed to load appointments:", err);
       }
@@ -256,7 +301,7 @@ export default function ProgramDashboard() {
     };
   }, []);
 
-  // 📥 Load the logged-in user's name for the greeting
+  // 📥 Load the logged-in user's name + plan free-consult credits for the greeting/cards
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -264,6 +309,8 @@ export default function ProgramDashboard() {
         const profile = await fetchMyProfile();
         if (mounted) {
           setUserName(profile?.fullName || profile?.nickName || "");
+          // read only THIS program's plan credits from the per-program map
+          setPlanCreditsLeft(profile?.planFreeConsults?.[id] || 0);
         }
       } catch {
         // soft fail — greeting shows without a name
@@ -273,6 +320,22 @@ export default function ProgramDashboard() {
       mounted = false;
     };
   }, []);
+
+  // 📥 Load active subscription → compute free-consult entitlement
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const sub = await fetchMySubscription(id);
+        if (mounted) setEntitlement(entitlementFromSubscription(sub));
+      } catch {
+        // soft fail — no cards shown if subscription can't load
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   // ▶️ Start a queue: open the YouTube video AND begin the 24hr countdown.
   // Visiting the video IS the trigger — no separate "Mark Complete" needed.
@@ -312,6 +375,14 @@ export default function ProgramDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* blink animation for active free-consult card border */}
+      <style>{`
+        @keyframes consultBlink {
+          0%, 100% { border-color: #FED7AA; box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+          50% { border-color: #F97316; box-shadow: 0 0 0 4px rgba(249,115,22,0.15); }
+        }
+        .consult-blink { animation: consultBlink 1.4s ease-in-out infinite; }
+      `}</style>
       <CustomerNavbar />
 
       <main className="flex-1">
@@ -393,7 +464,10 @@ export default function ProgramDashboard() {
                 <p className="text-sm font-bold text-gray-800 mb-3 px-1">
                   Log Today's Progress
                 </p>
-                <HabitTrackerForm programId={id} onSaved={handleProgressSaved} />
+                <HabitTrackerForm
+                  programId={id}
+                  onSaved={handleProgressSaved}
+                />
               </div>
             </div>
           </div>
@@ -496,37 +570,201 @@ export default function ProgramDashboard() {
           </div>
 
           {/* ══════════════════════════════════════════════════ */}
-          {/* 🩺 NEXT DOCTOR CONSULTATION                        */}
+          {/* 📅 UPCOMING APPOINTMENT (any booking)              */}
           {/* ══════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
-                <Calendar size={15} className="text-orange-500" />
+              <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
+                <Calendar size={15} className="text-blue-500" />
               </div>
               <span className="font-semibold text-gray-800 text-sm">
-                Next Doctor Consultation
+                Upcoming Appointment
               </span>
             </div>
 
-            {nextAppointment ? (
-              <div className="bg-blue-50 rounded-xl px-5 py-4">
-                <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
-                  <Bell size={11} className="text-blue-400" />
-                  Upcoming Check-in
-                </p>
-                <p className="text-sm font-medium text-gray-700">
-                  {nextAppointment.doctorName ||
-                    nextAppointment.doctor?.fullName ||
-                    "Doctor"}{" "}
-                  — {formatAppointmentDate(nextAppointment.scheduledAt)}
-                </p>
+            {allUpcoming.length > 0 ? (
+              <div className="bg-blue-50 rounded-xl px-5 py-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                    <Bell size={11} className="text-blue-400" />
+                    Upcoming Check-in
+                  </p>
+                  <p className="text-sm font-medium text-gray-700 truncate">
+                    {allUpcoming[0].doctorName ||
+                      allUpcoming[0].doctor?.fullName ||
+                      "Doctor"}{" "}
+                    — {formatAppointmentDate(allUpcoming[0].scheduledAt)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate("/my-appointments")}
+                  className="text-xs font-semibold text-blue-600 hover:underline shrink-0"
+                >
+                  View all
+                </button>
               </div>
             ) : (
               <div className="bg-gray-50 rounded-xl px-5 py-4 text-center">
                 <p className="text-sm text-gray-500">
-                  No upcoming appointments. Book a doctor consultation anytime.
+                  No upcoming appointments yet.
                 </p>
               </div>
+            )}
+          </div>
+
+          {/* ══════════════════════════════════════════════════ */}
+          {/* 🩺 FREE DOCTOR CONSULTATIONS (plan benefit)        */}
+          {/* ══════════════════════════════════════════════════ */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
+                <Stethoscope size={15} className="text-orange-500" />
+              </div>
+              <span className="font-semibold text-gray-800 text-sm">
+                Your Free Consultations
+              </span>
+            </div>
+
+            {entitlement === 0 ? (
+              <div className="mt-4 bg-gray-50 rounded-xl px-5 py-4 text-center">
+                <p className="text-sm text-gray-500">
+                  Purchase a plan to unlock free doctor consultations.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* 🔔 daily reminder — only if a free slot is still bookable */}
+                {planCreditsLeft > 0 && (
+                  <div className="mt-3 mb-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 flex items-center gap-2 shadow-[0_6px_18px_rgba(249,115,22,0.25)]">
+                    <Gift size={16} className="text-white shrink-0" />
+                    <p className="text-sm font-semibold text-white">
+                      Book Your Free Doctor Consultation
+                      {planCreditsLeft > 1 ? `s (${planCreditsLeft} left)` : ""}.
+                    </p>
+                  </div>
+                )}
+
+                {/* 🃏 cards — 4 slots, responsive grid */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                  {Array.from({ length: 4 }).map((_, i) => {
+                    const isWithinPlan = i < entitlement;
+                    const appt = upcomingAppointments[i]; // free-consult appointment for this slot
+                    const slotNo = i + 1;
+
+                    // shared card sizing
+                    const cardBase =
+                      "rounded-2xl border-2 px-5 py-5 min-h-[120px] flex flex-col justify-center transition-all";
+
+                    // Beyond plan entitlement → locked
+                    if (!isWithinPlan) {
+                      return (
+                        <div
+                          key={i}
+                          className={`${cardBase} border-dashed border-gray-200 bg-gray-50/60 opacity-70`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gray-200/70 flex items-center justify-center shrink-0">
+                              <Lock size={16} className="text-gray-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-400">
+                                Consultation {slotNo}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                Upgrade your plan to unlock
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // A free-consult appointment occupies this slot → show its state (disabled)
+                    if (appt) {
+                      const isCancelled = appt.status === "cancelled";
+                      const isCompleted = appt.status === "completed";
+                      const tone = isCancelled
+                        ? { border: "border-gray-200", bg: "bg-gray-50", icon: "bg-gray-100", iconColor: "text-gray-400", badge: "text-gray-500 bg-gray-100", label: "Cancelled" }
+                        : isCompleted
+                        ? { border: "border-emerald-200", bg: "bg-emerald-50/50", icon: "bg-emerald-100", iconColor: "text-emerald-600", badge: "text-emerald-700 bg-emerald-100", label: "Completed" }
+                        : { border: "border-emerald-200", bg: "bg-emerald-50/50", icon: "bg-emerald-100", iconColor: "text-emerald-600", badge: "text-emerald-700 bg-emerald-100", label: "Booked" };
+
+                      return (
+                        <div
+                          key={i}
+                          className={`${cardBase} ${tone.border} ${tone.bg} ${isCancelled ? "opacity-80" : ""}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl ${tone.icon} flex items-center justify-center shrink-0`}>
+                              <Calendar size={16} className={tone.iconColor} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm font-bold truncate ${isCancelled ? "text-gray-500 line-through" : "text-gray-800"}`}>
+                                {appt.doctorName || appt.doctor?.fullName || "Doctor"}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {formatAppointmentDate(appt.scheduledAt)}
+                              </p>
+                            </div>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${tone.badge}`}>
+                              {tone.label}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // No appointment here → active ONLY if real credits remain
+                    if (planCreditsLeft > 0) {
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => navigate("/book-doctor")}
+                          className={`${cardBase} text-left border-orange-200 bg-orange-50/40 hover:bg-orange-50 consult-blink`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                              <Stethoscope size={16} className="text-orange-600" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-gray-800">
+                                Free Consultation {slotNo}
+                              </p>
+                              <p className="text-xs text-orange-600 font-medium mt-0.5">
+                                Tap to book your free consultation →
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    // Within plan but no appointment and no credits left → used/empty (disabled)
+                    return (
+                      <div
+                        key={i}
+                        className={`${cardBase} border-dashed border-gray-200 bg-gray-50/60 opacity-70`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gray-200/70 flex items-center justify-center shrink-0">
+                            <Lock size={16} className="text-gray-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-400">
+                              Consultation {slotNo}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              No free consultation available
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </div>

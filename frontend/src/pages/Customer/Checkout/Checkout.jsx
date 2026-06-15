@@ -48,6 +48,12 @@ const Checkout = () => {
   const [paying, setPaying] = useState(false);
 
   const [freeCredits, setFreeCredits] = useState(0);
+  const [planConsults, setPlanConsults] = useState(0); // plan free consultations
+
+  // booking is free if user has either a plan consult OR a cancel credit
+  // (backend consumes planFreeConsults first, then freeAppointmentCredits)
+  const isFreeBooking = planConsults > 0 || freeCredits > 0;
+  const usingPlanConsult = planConsults > 0; // plan benefit takes priority
   // body profile completion status — decides which button to show
   const { isComplete: bodyProfileComplete, loading: bodyProfileLoading } =
     useMyBodyProfile();
@@ -107,11 +113,13 @@ const Checkout = () => {
         if (!isMountedRef.current) return;
         setDoctor(doc);
 
-        // 🎁 Check free credits
+        // 🎁 Check free credits (plan consults + cancel credits)
         try {
           const profile = await fetchMyProfile();
           if (isMountedRef.current) {
             setFreeCredits(profile?.freeAppointmentCredits || 0);
+            // read only THIS program's plan credits from the per-program map
+            setPlanConsults(profile?.planFreeConsults?.[PLATFORM] || 0);
           }
         } catch (err) {
           // soft fail — payment flow still works
@@ -235,7 +243,7 @@ const Checkout = () => {
               <ConsultationCard
                 doctor={doctor}
                 scheduledAt={intent?.scheduledAt}
-                fee={freeCredits > 0 ? 0 : BOOKING_FEE}
+                fee={isFreeBooking ? 0 : BOOKING_FEE}
                 showTotals
               />
 
@@ -331,20 +339,36 @@ const Checkout = () => {
                 </button>
               )}
 
-              {freeCredits > 0 && (
+              {isFreeBooking && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                     <Gift size={18} className="text-emerald-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-emerald-800">
-                      Free Appointment Credit Available
-                    </p>
-                    <p className="text-xs text-emerald-700 mt-0.5">
-                      You have <strong>{freeCredits}</strong> free appointment
-                      credit{freeCredits > 1 ? "s" : ""}. This booking will use
-                      1 credit — no payment needed.
-                    </p>
+                    {usingPlanConsult ? (
+                      <>
+                        <p className="text-sm font-bold text-emerald-800">
+                          Free Consultation — Subscription Benefit
+                        </p>
+                        <p className="text-xs text-emerald-700 mt-0.5">
+                          This consultation is <strong>free</strong> with your
+                          plan. You have <strong>{planConsults}</strong> free
+                          consultation{planConsults > 1 ? "s" : ""} left — no
+                          payment needed.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-emerald-800">
+                          Free Appointment Credit Available
+                        </p>
+                        <p className="text-xs text-emerald-700 mt-0.5">
+                          You have <strong>{freeCredits}</strong> free
+                          appointment credit{freeCredits > 1 ? "s" : ""}. This
+                          booking will use 1 credit — no payment needed.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -367,10 +391,10 @@ const Checkout = () => {
                 {paying ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    {freeCredits > 0 ? "Confirming…" : "Processing payment…"}
+                    {isFreeBooking ? "Confirming…" : "Processing payment…"}
                   </>
-                ) : freeCredits > 0 ? (
-                  "Confirm Free Booking"
+                ) : isFreeBooking ? (
+                  usingPlanConsult ? "Book Free Consultation" : "Confirm Free Booking"
                 ) : (
                   `Pay $${BOOKING_FEE}`
                 )}
