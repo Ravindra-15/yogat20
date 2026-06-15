@@ -1,10 +1,12 @@
 // Yoga T20 Programs - Program Dashboard
-// Daily video tracker with dynamic queue + 24hr cooldown logic
-// Uses real clinical videos from admin CMS + real upcoming appointment
+// 3 yoga-type cards (Normal / Chair / High Intensity).
+// Clicking "Start" opens that type's YouTube URL AND starts the 24hr countdown
+// (markVideoComplete), so the NEXT day the queue serves the next video.
+// No central video section, no manual "Mark as Complete". No backend change.
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Play, Check, Plus, Bell, Calendar, ChevronUp } from "lucide-react";
+import { Play, Plus, Bell, Calendar, ChevronUp } from "lucide-react";
 import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
@@ -12,7 +14,6 @@ import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
 import {
   getCurrentVideo,
   markVideoComplete,
-  buildThumbnailSrc,
 } from "../../../services/clinicalVideoService";
 import { listMyAppointments } from "../../../services/customerAppointmentService";
 import { fetchMyProfile } from "../../../services/customerProfileService";
@@ -24,28 +25,33 @@ const programTitles = {
   slimfitter: "Slimfitter",
 };
 
-// 🧘 The 3 yoga queues (default = normal_yoga)
+// 🧘 The 3 yoga queues
 const YOGA_TYPES = {
   normal_yoga: { id: "normal_yoga", label: "Normal Yoga" },
   chair_yoga: { id: "chair_yoga", label: "Chair Yoga" },
   high_intensity: { id: "high_intensity", label: "High Intensity Yoga" },
 };
 
-// 🧘 Suggestion cards below video (clicking swaps the queue)
-const suggestions = [
+// 🧘 The 3 cards shown on the dashboard. Clicking "Start" plays that queue's
+// current video on YouTube and advances the queue (starts the 24hr countdown).
+const YOGA_CARDS = [
+  {
+    id: "normal_yoga",
+    label: "Your daily practice",
+    bold: "Normal Yoga",
+    image: "/images/normalyogaimg.png", // ⚠️ add this asset to /public/images
+  },
   {
     id: "chair_yoga",
     label: "Tired today ? Do some",
-    bold: "Chair yoga then",
-    image:
-      "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=400&q=80",
+    bold: "Chair Yoga",
+    image: "/images/chairyogaimg.png",
   },
   {
     id: "high_intensity",
     label: "Motivated Enough for",
-    bold: "Daily Yoga",
-    image:
-      "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=400&q=80",
+    bold: "High Intensity Yoga",
+    image: "/images/highintesityyogaimg.png",
   },
 ];
 
@@ -157,7 +163,8 @@ export default function ProgramDashboard() {
   const { id } = useParams();
   const navigate = useNavigate();
   const programTitle = programTitles[id] || "Program";
- // 📈 inline Add-Progress expand state
+
+  // 📈 inline Add-Progress expand state
   const [showProgress, setShowProgress] = useState(false);
   const topRef = useRef(null); // scroll target after saving
   const progressRef = useRef(null); // scroll target when auto-opening from navbar
@@ -179,36 +186,50 @@ export default function ProgramDashboard() {
       setSearchParams(searchParams, { replace: true });
       // wait for expand animation to start, then scroll to the form
       const t = setTimeout(() => {
-        progressRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        progressRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 250);
       return () => clearTimeout(t);
     }
   }, [searchParams, setSearchParams]);
 
-  const [yogaType, setYogaType] = useState("normal_yoga");
-  const [videoData, setVideoData] = useState(null);
-  const [loadingVideo, setLoadingVideo] = useState(true);
-  const [markingComplete, setMarkingComplete] = useState(false);
+  // 🎬 Pre-fetched current video for EACH yoga type.
+  // Shape per entry: { video, completedToday, dayIndex, isScheduled } | null
+  const [videosByType, setVideosByType] = useState({});
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const [startingType, setStartingType] = useState(null); // type currently advancing
+
   const [nextAppointment, setNextAppointment] = useState(null);
   const [userName, setUserName] = useState(""); // logged-in user's display name
 
-  // 📥 Load video for current queue
-  const loadVideo = useCallback(async () => {
-    setLoadingVideo(true);
-    try {
-      const data = await getCurrentVideo(id, yogaType);
-      setVideoData(data);
-    } catch (err) {
-      console.error("Failed to load video:", err);
-      setVideoData(null);
-    } finally {
-      setLoadingVideo(false);
-    }
-  }, [id, yogaType]);
-
+  // 📥 Load the current video for all three queues at once.
+  // Pre-fetching is required so window.open() on click is synchronous and
+  // does NOT get blocked by the browser's popup blocker.
   useEffect(() => {
-    loadVideo();
-  }, [loadVideo]);
+    let mounted = true;
+    (async () => {
+      setLoadingVideos(true);
+      try {
+        const types = Object.keys(YOGA_TYPES);
+        const results = await Promise.all(
+          types.map((t) => getCurrentVideo(id, t).catch(() => null)),
+        );
+        if (!mounted) return;
+        const map = {};
+        types.forEach((t, i) => {
+          map[t] = results[i];
+        });
+        setVideosByType(map);
+      } finally {
+        if (mounted) setLoadingVideos(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   // 📥 Load next appointment (once on mount)
   useEffect(() => {
@@ -253,29 +274,41 @@ export default function ProgramDashboard() {
     };
   }, []);
 
-  // ✅ Mark current video complete
-  const handleMarkComplete = async () => {
-    if (!videoData?.video || videoData.completedToday || markingComplete)
+  // ▶️ Start a queue: open the YouTube video AND begin the 24hr countdown.
+  // Visiting the video IS the trigger — no separate "Mark Complete" needed.
+  const handleStart = (type) => {
+    const data = videosByType[type];
+    if (!data?.video?.videoUrl) {
+      toast.error(`No ${YOGA_TYPES[type].label} video available yet.`);
       return;
-    setMarkingComplete(true);
-    try {
-      await markVideoComplete(videoData.video._id);
-      toast.success("Video marked as complete! See you tomorrow.");
-      await loadVideo();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to mark complete");
-    } finally {
-      setMarkingComplete(false);
     }
-  };
 
-  const handleSwitchQueue = (newYogaType) => {
-    if (newYogaType === yogaType) return;
-    setYogaType(newYogaType);
-  };
+    // Open synchronously (inside the click handler) so it isn't popup-blocked.
+    window.open(data.video.videoUrl, "_blank", "noopener,noreferrer");
 
-  const video = videoData?.video;
-  const completedToday = videoData?.completedToday;
+    // Already watched today → just reopened it, nothing to advance.
+    if (data.completedToday) return;
+
+    // Start the countdown: marking complete advances the queue for tomorrow.
+    setStartingType(type);
+    (async () => {
+      try {
+        await markVideoComplete(data.video._id);
+        // Refresh this queue so the UI reflects "watched today";
+        // the next video unlocks on the next day's visit.
+        const refreshed = await getCurrentVideo(id, type).catch(() => ({
+          ...data,
+          completedToday: true,
+        }));
+        setVideosByType((prev) => ({ ...prev, [type]: refreshed }));
+      } catch (err) {
+        // Soft fail — the user still got the video open.
+        console.error("Failed to start countdown:", err);
+      } finally {
+        setStartingType(null);
+      }
+    })();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -286,7 +319,10 @@ export default function ProgramDashboard() {
           {/* ══════════════════════════════════════════════════ */}
           {/* GREETING CARD + PROGRESS RING                      */}
           {/* ══════════════════════════════════════════════════ */}
-          <div ref={topRef} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-7 sm:px-8">
+          <div
+            ref={topRef}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-7 sm:px-8"
+          >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               {/* Left */}
               <div className="flex-1 min-w-0">
@@ -334,23 +370,25 @@ export default function ProgramDashboard() {
                 </button>
               </div>
 
-             {/* Right — progress ring (desktop only; mobile renders it under the greeting) */}
+              {/* Right — progress ring (desktop only; mobile renders it under the greeting) */}
               <div className="shrink-0 mx-auto sm:mx-0 hidden sm:block">
                 <ProgressRing />
               </div>
             </div>
           </div>
 
-         {/* ══════════════════════════════════════════════════ */}
+          {/* ══════════════════════════════════════════════════ */}
           {/* 📈 INLINE ADD-PROGRESS (animated expand)            */}
           {/* ══════════════════════════════════════════════════ */}
           <div
             ref={progressRef}
             className={`grid transition-all duration-300 ease-in-out ${
-              showProgress ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              showProgress
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0"
             }`}
           >
-           <div className="overflow-hidden">
+            <div className="overflow-hidden">
               <div className="pt-1 pb-1">
                 <p className="text-sm font-bold text-gray-800 mb-3 px-1">
                   Log Today's Progress
@@ -361,184 +399,100 @@ export default function ProgramDashboard() {
           </div>
 
           {/* ══════════════════════════════════════════════════ */}
-          {/* 🎬 VIDEO CARD                                       */}
-          {/* ══════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            {loadingVideo ? (
-              <p className="py-10 text-center text-sm text-gray-400">
-                Loading video...
-              </p>
-            ) : !video ? (
-              <div className="py-10 text-center">
-                <p className="text-sm text-gray-500 mb-2">
-                  No videos available for {YOGA_TYPES[yogaType].label} yet.
-                </p>
-                <p className="text-xs text-gray-400">
-                  Check back soon — new content is uploaded regularly.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row items-start gap-5">
-                {/* Thumbnail */}
-                <a
-                  href={video.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative w-full sm:w-52 h-32 rounded-xl overflow-hidden shrink-0 group"
-                >
-                  <img
-                    src={buildThumbnailSrc(video.thumbnailUrl)}
-                    alt={video.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80";
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 flex items-center justify-center transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
-                      <Play
-                        size={18}
-                        className="text-white ml-0.5"
-                        fill="white"
-                      />
-                    </div>
-                  </div>
-                </a>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  {/* Day label */}
-                  {videoData?.dayIndex != null && (
-                    <p className="text-xs text-gray-400 font-semibold mb-0.5 tracking-wide uppercase">
-                      Day {String(videoData.dayIndex + 1).padStart(2, "0")}
-                    </p>
-                  )}
-                  <p className="text-orange-500 font-semibold text-sm">
-                    {YOGA_TYPES[yogaType].label}
-                    {videoData?.isScheduled && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 text-[10px] font-bold">
-                        Today's Special
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-gray-800 font-semibold text-base mt-0.5 leading-snug">
-                    {video.title}
-                  </p>
-                  {video.duration && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {video.duration}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap gap-3 mt-4">
-                    <a
-                      href={video.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-6 py-2.5 rounded-full shadow-[0_4px_14px_rgba(249,115,22,0.25)] transition-colors"
-                    >
-                      <Play size={13} fill="white" />
-                      Play Video
-                    </a>
-                    <button
-                      onClick={handleMarkComplete}
-                      disabled={completedToday || markingComplete}
-                      className={`inline-flex items-center gap-2 text-sm font-semibold px-6 py-2.5 rounded-full border transition-colors disabled:cursor-not-allowed ${
-                        completedToday
-                          ? "bg-green-50 border-green-400 text-green-600"
-                          : "border-gray-200 text-gray-600 hover:border-orange-400 hover:text-orange-500"
-                      }`}
-                    >
-                      <Check size={13} />
-                      {completedToday
-                        ? "Completed ✓"
-                        : markingComplete
-                          ? "Saving..."
-                          : "Mark as Complete"}
-                    </button>
-                  </div>
-
-                  {completedToday && (
-                    <p className="text-xs text-gray-400 mt-3">
-                      Great job! Your next video unlocks tomorrow.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ══════════════════════════════════════════════════ */}
-          {/* 🧘 SUGGESTION CARDS                                */}
-          {/* ══════════════════════════════════════════════════ */}
-          {/* ══════════════════════════════════════════════════ */}
-          {/* 🧘 SUGGESTION CARDS                                */}
-          {/* ══════════════════════════════════════════════════ */}
-          {/* ══════════════════════════════════════════════════ */}
-          {/* 🧘 SUGGESTION CARDS                                */}
+          {/* 🧘 CHOOSE YOUR PRACTICE — 3 CARDS                  */}
           {/* ══════════════════════════════════════════════════ */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="grid grid-cols-2 relative">
-              {/* Orange vertical divider — matches Figma exactly */}
-              <div className="absolute left-1/2 top-8 bottom-8 w-[2px] bg-orange-300 -translate-x-1/2 rounded-full z-10" />
+            <div className="px-6 pt-6">
+              <p className="text-gray-800 font-bold text-base">
+                Choose your practice for today
+              </p>
+              <p className="text-gray-400 text-xs mt-0.5">
+                Pick a style and hit Start — your video opens and the next one
+                unlocks tomorrow.
+              </p>
+            </div>
 
-              {suggestions.map((s) => {
-                const isActive = yogaType === s.id;
-                const imgSrc =
-                  s.id === "chair_yoga"
-                    ? "/images/chairyogaimg.png"
-                    : "/images/highintesityyogaimg.png";
+            <div className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x sm:divide-orange-200">
+              {YOGA_CARDS.map((card) => {
+                const data = videosByType[card.id];
+                const video = data?.video;
+                const completedToday = data?.completedToday;
+                const dayIndex = data?.dayIndex;
+                const busy = startingType === card.id;
+
+                // Button label / state
+                let btnLabel = "Start";
+                if (loadingVideos) btnLabel = "Loading...";
+                else if (!video) btnLabel = "Coming soon";
+                else if (busy) btnLabel = "Opening...";
+                else if (completedToday) btnLabel = "Watch Again";
+
+                const disabled = loadingVideos || !video || busy;
 
                 return (
                   <div
-                    key={s.id}
-                    className="flex flex-col items-center text-center px-4 sm:px-10 py-8 sm:py-10"
+                    key={card.id}
+                    className="flex flex-col items-center text-center px-4 sm:px-8 py-8 sm:py-10"
                   >
-                    {/* Bigger image — no rounded box, just the illustration */}
-                    <div className="w-full h-32 sm:h-96 mb-5">
+                    {/* Illustration */}
+                    <div className="w-full h-32 sm:h-72 mb-5">
                       <img
-                        src={imgSrc}
-                        alt={s.bold}
+                        src={card.image}
+                        alt={card.bold}
                         className="w-full h-full object-contain mix-blend-multiply"
                       />
                     </div>
 
-                    {/* Text */}
+                    {/* Tagline */}
                     <p className="text-gray-400 text-xs sm:text-sm leading-snug">
-                      {s.label}
+                      {card.label}
                     </p>
                     <p className="text-gray-800 font-bold text-sm sm:text-base mt-0.5">
-                      {s.bold}
+                      {card.bold}
                     </p>
+
+                    {/* Current video hint (today's queue item) */}
+                    {video ? (
+                      <p className="text-[11px] text-gray-400 mt-1 line-clamp-1 max-w-[12rem]">
+                        {dayIndex != null && (
+                          <span className="font-semibold text-gray-500">
+                            Day {String(dayIndex + 1).padStart(2, "0")} ·{" "}
+                          </span>
+                        )}
+                        {video.title}
+                      </p>
+                    ) : (
+                      !loadingVideos && (
+                        <p className="text-[11px] text-gray-300 mt-1">
+                          No video yet
+                        </p>
+                      )
+                    )}
 
                     {/* CTA button */}
                     <button
-                      onClick={() => handleSwitchQueue(s.id)}
-                      className={`mt-4 text-sm font-semibold px-10 sm:px-14 py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.25)] ${
-                        isActive
+                      onClick={() => handleStart(card.id)}
+                      disabled={disabled}
+                      className={`mt-4 inline-flex items-center gap-2 text-sm font-semibold px-10 sm:px-12 py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.25)] disabled:cursor-not-allowed disabled:opacity-60 ${
+                        completedToday
                           ? "bg-green-500 hover:bg-green-600 text-white"
                           : "bg-orange-500 hover:bg-orange-600 text-white"
                       }`}
                     >
-                      {isActive ? "✓ Active" : "Start"}
+                      <Play size={13} fill="white" />
+                      {btnLabel}
                     </button>
+
+                    {/* Subtle note once watched today */}
+                    {completedToday && (
+                      <p className="text-[11px] text-gray-400 mt-2">
+                        Next video unlocks tomorrow
+                      </p>
+                    )}
                   </div>
                 );
               })}
             </div>
-
-            {/* Back to Normal Yoga — only shown when on alt queue */}
-            {yogaType !== "normal_yoga" && (
-              <div className="text-center py-3 border-t border-gray-100">
-                <button
-                  onClick={() => handleSwitchQueue("normal_yoga")}
-                  className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:underline"
-                >
-                  ← Back to Normal Yoga
-                </button>
-              </div>
-            )}
           </div>
 
           {/* ══════════════════════════════════════════════════ */}
