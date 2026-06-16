@@ -15,6 +15,7 @@ import {
   Stethoscope,
   Lock,
   Gift,
+  Video
 } from "lucide-react";
 import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
@@ -572,7 +573,7 @@ export default function ProgramDashboard() {
           {/* ══════════════════════════════════════════════════ */}
           {/* 📅 UPCOMING APPOINTMENT (any booking)              */}
           {/* ══════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+          {/* <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
                 <Calendar size={15} className="text-blue-500" />
@@ -611,7 +612,7 @@ export default function ProgramDashboard() {
                 </p>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* ══════════════════════════════════════════════════ */}
           {/* 🩺 FREE DOCTOR CONSULTATIONS (plan benefit)        */}
@@ -681,9 +682,15 @@ export default function ProgramDashboard() {
                     }
 
                     // A free-consult appointment occupies this slot → show its state (disabled)
-                    if (appt) {
+                   if (appt) {
                       const isCancelled = appt.status === "cancelled";
                       const isCompleted = appt.status === "completed";
+                      // show Join only for active (not cancelled/completed) bookings with a sent link
+                      const canJoin =
+                        !isCancelled &&
+                        !isCompleted &&
+                        !!appt.meetingLink &&
+                        !!appt.meetingLinkSentAt;
                       const tone = isCancelled
                         ? { border: "border-gray-200", bg: "bg-gray-50", icon: "bg-gray-100", iconColor: "text-gray-400", badge: "text-gray-500 bg-gray-100", label: "Cancelled" }
                         : isCompleted
@@ -711,6 +718,33 @@ export default function ProgramDashboard() {
                               {tone.label}
                             </span>
                           </div>
+
+                        {/* 🔗 meeting link + Join Now (once doctor sends it) */}
+                          {canJoin && (
+                            <div className="mt-3 pt-3 border-t border-emerald-100 space-y-2">
+                              <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                                <Video size={12} className="text-orange-500 shrink-0" />
+                                <a
+                                  href={appt.meetingLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-orange-600 hover:underline truncate"
+                                  title={appt.meetingLink}
+                                >
+                                  {appt.meetingLink}
+                                </a>
+                              </div>
+                              <a
+                                href={appt.meetingLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-[0_4px_10px_rgba(249,115,22,0.25)]"
+                              >
+                                <Video size={12} />
+                                Join Now
+                              </a>
+                            </div>
+                          )}
                         </div>
                       );
                     }
