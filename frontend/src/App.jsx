@@ -79,6 +79,7 @@ import MyPatients from "./pages/Doctor/MyPatients/MyPatients";
 import AvailabilityManager from "./pages/Doctor/AvailabilityManager/AvailabilityManager";
 import Notifications from "./pages/Doctor/Notifications/Notifications";
 import Settings from "./pages/Doctor/Settings/Settings";
+import WhatsAppFloat from "./components/common/WhatsAppFloat";
 
 function App() {
   return (
@@ -323,6 +324,8 @@ function App() {
         {/* ============================================ */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      {/* 💬 floats over every page */}
+      <WhatsAppFloat />
       </div>
    </Router>
     </GoogleOAuthProvider>

@@ -309,7 +309,7 @@ const Signup = () => {
       </div>
 
       {/* WhatsApp Floating Button */}
-      <a
+      {/* <a
         href="https://wa.me/919876543210"
         target="_blank"
         rel="noopener noreferrer"
@@ -317,7 +317,7 @@ const Signup = () => {
       >
         <WhatsAppIcon />
         <span className="hidden sm:inline">Chat With Us !</span>
-      </a>
+      </a> */}
     </div>
   );
 };
