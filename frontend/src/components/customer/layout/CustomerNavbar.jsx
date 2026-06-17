@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import AuthContext from "../../../context/AuthContext";
 import { hasActiveProgramSubscription } from "../../../utils/subscriptionCheck";
 import { PROGRAM_ID } from "../../../utils/programConfig";
-
+import { fetchMyNotifications } from "../../../services/customerNotificationService";
 // ============================================
 // 🔗 NAV LINK CONFIGS
 // ============================================
@@ -81,8 +81,30 @@ const CustomerNavbar = () => {
     };
   }, [isLoggedIn]);
 
-  // dashboard path for this program
+ // dashboard path for this program
   const dashboardPath = `/programs/${PROGRAM_ID}/dashboard`;
+
+  // 🔔 unread notification count for the bell badge
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!isLoggedIn || !profileCompleted) {
+      setUnreadCount(0);
+      return;
+    }
+    (async () => {
+      try {
+        const data = await fetchMyNotifications();
+        if (mounted) setUnreadCount(data?.unreadCount || 0);
+      } catch {
+        // soft fail — bell just shows no badge
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isLoggedIn, profileCompleted, location.pathname]);
 
   // Home click — subscribed → dashboard; logged-in unsubscribed → toast; else landing
   const handleHomeClick = (e) => {
@@ -290,15 +312,20 @@ const CustomerNavbar = () => {
                   <NavLink
                     to="/notifications"
                     className={({ isActive }) =>
-                      `hidden sm:inline-flex w-10 h-10 rounded-full items-center justify-center transition-colors ${
+                      `relative hidden sm:inline-flex w-10 h-10 rounded-full items-center justify-center transition-colors ${
                         isActive
-                          ? "bg-teal-50 text-teal-700"
-                          : "text-gray-600 hover:bg-gray-50"
+                          ? "bg-teal-50 text-[#083B44]"
+                          : "text-[#6B7280] hover:bg-[#F6F8FC]"
                       }`
                     }
                     aria-label="Notifications"
                   >
                     <Bell size={18} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </NavLink>
 
                   {/* 👤 PROFILE */}
@@ -399,12 +426,17 @@ const CustomerNavbar = () => {
 
               {!hideAuthUI && isLoggedIn && profileCompleted ? (
                 <>
-                  <NavLink
+                 <NavLink
                     to="/notifications"
                     onClick={closeMobile}
-                    className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-[#374151] hover:bg-[#F6F8FC] flex items-center gap-2"
                   >
                     Notifications
+                    {unreadCount > 0 && (
+                      <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </NavLink>
 
                   <button

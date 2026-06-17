@@ -14,6 +14,7 @@ import {
   markNotificationRead,
 } from "../../../services/customerNotificationService";
 import NotificationItem from "./components/NotificationItem";
+import { PROGRAM_ID } from "../../../utils/programConfig";
 
 export default function Notifications() {
   const navigate = useNavigate();
@@ -61,6 +62,13 @@ export default function Notifications() {
         // soft fail
       }
     }
+
+    // 🔗 redirect only if the notification belongs to THIS program
+    // (cross-program expiry notifications are informational-only here)
+    const link = notification?.metadata?.link;
+    const notifProgram = notification?.metadata?.programId;
+    const belongsToThisProgram = !notifProgram || notifProgram === PROGRAM_ID;
+    if (link && belongsToThisProgram) navigate(link);
   };
 
   return (

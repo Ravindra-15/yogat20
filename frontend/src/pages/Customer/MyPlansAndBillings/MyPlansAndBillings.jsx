@@ -12,6 +12,8 @@ import {
   CalendarClock,
   Award,
   PlayCircle,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
@@ -40,6 +42,7 @@ export default function MyPlansAndBillings() {
   const [summary, setSummary] = useState({ totalCompleted: 0 });
   const [transactions, setTransactions] = useState([]);
   const [subscription, setSubscription] = useState(null);
+  const [pendingRenewal, setPendingRenewal] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // 📥 Load billing summary + transactions + subscription
@@ -53,7 +56,8 @@ export default function MyPlansAndBillings() {
         ]);
         setSummary(s?.consultations || { totalCompleted: 0 });
         setTransactions(t || []);
-        setSubscription(sub || null);
+        setSubscription(sub?.subscription || null);
+        setPendingRenewal(sub?.pendingRenewal || null);
       } catch {
         toast.error("Failed to load billing data");
       } finally {
@@ -148,25 +152,32 @@ export default function MyPlansAndBillings() {
                 </div>
               </div>
 
-              {/* Action button — Dashboard if active, Renew if expired */}
-              {subscription.isActive ? (
-                <button
-                  onClick={() =>
-                    navigate(`/programs/${PROGRAM_ID}/dashboard`)
-                  }
-                  className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-[0_4px_14px_rgba(91,79,247,0.25)] transition-colors shrink-0"
-                >
-                  <PlayCircle size={15} />
-                  Go to Dashboard
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate(`/programs/${PROGRAM_ID}/tenure`)}
-                  className="inline-flex items-center justify-center gap-2 border border-orange-500 text-orange-500 hover:bg-[#FFF7ED text-sm font-semibold px-5 py-2.5 rounded-full transition-colors shrink-0"
-                >
-                  Renew Program
-                </button>
-              )}
+              {/* Action buttons — Dashboard (active) + Renew (expiring soon or expired) */}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {subscription.isActive && (
+                  <button
+                    onClick={() =>
+                      navigate(`/programs/${PROGRAM_ID}/dashboard`)
+                    }
+                    className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-[0_4px_14px_rgba(91,79,247,0.25)] transition-colors"
+                  >
+                    <PlayCircle size={15} />
+                    Go to Dashboard
+                  </button>
+                )}
+
+                {/* Renew — show when expired, OR active+expiring within 7 days and no renewal already queued */}
+                {(!subscription.isActive ||
+                  (subscription.daysUntilExpiry <= 7 && !pendingRenewal)) && (
+                  <button
+                    onClick={() => navigate(`/programs/${PROGRAM_ID}/tenure`)}
+                    className="inline-flex items-center justify-center gap-2 border border-orange-500 text-orange-500 hover:bg-[#F5F7FF] text-sm font-semibold px-5 py-2.5 rounded-full transition-colors"
+                  >
+                    <RefreshCw size={15} />
+                    Renew Program
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Progress bar */}
@@ -184,6 +195,27 @@ export default function MyPlansAndBillings() {
               <span>Started</span>
               <span>{subscription.progressPercent}%</span>
               <span>Completion</span>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* 🔜 PENDING RENEWAL — new plan starts after current ends */}
+        {/* ============================================ */}
+        {pendingRenewal && (
+          <div className="bg-[#F5F7FF] rounded-2xl border border-[#D9DDF0] p-5 sm:p-6 mb-6 flex items-start gap-3">
+            <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center shrink-0">
+              <Clock size={18} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-gray-800 text-sm sm:text-base">
+                Your new plan will start soon
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {pendingRenewal.programName} ({pendingRenewal.tenure}) begins on{" "}
+                <strong>{formatDate(pendingRenewal.startDate)}</strong> — right
+                after your current plan ends. No action needed.
+              </p>
             </div>
           </div>
         )}

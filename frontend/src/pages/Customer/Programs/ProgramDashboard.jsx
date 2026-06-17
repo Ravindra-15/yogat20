@@ -6,17 +6,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  Play,
-  Plus,
-  Bell,
-  Calendar,
-  ChevronUp,
-  Stethoscope,
-  Lock,
-  Gift,
-  Video
-} from "lucide-react";
+import { Play, Check, Plus, Bell, Calendar, ChevronUp, Stethoscope, Lock, Gift, Video, Clock, X } from "lucide-react";
 import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
@@ -231,10 +221,28 @@ export default function ProgramDashboard() {
   const [userName, setUserName] = useState(""); // logged-in user's display name
 
   // 🩺 free-consultation cards state
-  const [upcomingAppointments, setUpcomingAppointments] = useState([]); // plan-credit bookings only
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]); // plan-credit bookings (this program)
   const [allUpcoming, setAllUpcoming] = useState([]); // every upcoming appointment
-  const [entitlement, setEntitlement] = useState(0); // total free-consult slots by plan
-  const [planCreditsLeft, setPlanCreditsLeft] = useState(0); // remaining planFreeConsults
+  const [entitlement, setEntitlement] = useState(0);
+  const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
+
+  // 🔔 plan-expiry welcome popup
+  const [expiryPopupOpen, setExpiryPopupOpen] = useState(false);
+  const [expiryInfo, setExpiryInfo] = useState(null);
+  const expiryTimerRef = useRef(null);
+
+  // auto-close the expiry popup after 5s
+  useEffect(() => {
+    if (!expiryPopupOpen) return;
+    expiryTimerRef.current = setTimeout(() => setExpiryPopupOpen(false), 5000);
+    return () => clearTimeout(expiryTimerRef.current);
+  }, [expiryPopupOpen]);
+
+  // close popup early + clear timer
+  const closeExpiryPopup = () => {
+    if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
+    setExpiryPopupOpen(false);
+  };
 
   // 📥 Load the current video for all three queues at once.
   // Pre-fetching is required so window.open() on click is synchronous and
@@ -322,13 +330,35 @@ export default function ProgramDashboard() {
     };
   }, []);
 
-  // 📥 Load active subscription → compute free-consult entitlement
+  // 📥 Load active subscription → compute free-consult entitlement + expiry popup
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const sub = await fetchMySubscription(id);
-        if (mounted) setEntitlement(entitlementFromSubscription(sub));
+        const res = await fetchMySubscription(id);
+        const sub = res?.subscription || null;
+        if (!mounted) return;
+        setEntitlement(entitlementFromSubscription(sub));
+
+        // 🔔 show expiry popup ONCE per session (not on every refresh/visit)
+        const sessionTag = (localStorage.getItem("token") || sessionStorage.getItem("token") || "").slice(-12);
+        const popupKey = `expiryPopupShown_${id}_${sessionTag}`;
+        const alreadyShown = sessionStorage.getItem(popupKey) === "1";
+        if (
+          !alreadyShown &&
+          sub?.isActive &&
+          typeof sub.daysUntilExpiry === "number" &&
+          sub.daysUntilExpiry <= 7 &&
+          !res?.pendingRenewal
+        ) {
+          setExpiryInfo({
+            daysLeft: sub.daysUntilExpiry,
+            endDate: sub.endDate,
+            programName: sub.programName,
+          });
+          setExpiryPopupOpen(true);
+          sessionStorage.setItem(popupKey, "1"); // mark shown for this session
+        }
       } catch {
         // soft fail — no cards shown if subscription can't load
       }
@@ -374,8 +404,51 @@ export default function ProgramDashboard() {
     })();
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+ return (
+    <div className="min-h-screen bg-[#F6F8FC] flex flex-col">
+      {/* 🔔 PLAN-EXPIRY WELCOME POPUP (auto-closes in 5s) */}
+      {expiryPopupOpen && expiryInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md px-7 py-8 text-center relative">
+            <button
+              type="button"
+              onClick={closeExpiryPopup}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#EEF2FF] to-[#F5F7FF] flex items-center justify-center mx-auto mb-4 ring-8 ring-[#F5F7FF]/60">
+              <Clock size={28} className="text-orange-500" />
+            </div>
+
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+              {expiryInfo.daysLeft <= 0
+                ? "Your plan expires today"
+                : expiryInfo.daysLeft === 1
+                ? "Your plan expires tomorrow"
+                : `Your plan expires in ${expiryInfo.daysLeft} days`}
+            </h3>
+            <p className="text-sm text-gray-500 leading-relaxed mb-5">
+              Renew your {expiryInfo.programName} plan to keep your videos,
+              progress tracking, and free consultations going without a break.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => {
+                closeExpiryPopup();
+                navigate("/my-plans-and-billings");
+              }}
+              className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+            >
+              Renew Now
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* blink animation for active free-consult card border */}
       <style>{`
         @keyframes consultBlink {

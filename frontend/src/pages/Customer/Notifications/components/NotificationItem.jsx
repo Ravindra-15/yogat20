@@ -2,7 +2,17 @@
 // Single notification row — icon-coded by type, shows time-ago, dimmed when read
 // Used inside Notifications page list
 
-import { CheckCircle2, CreditCard, AlertCircle, Bell, Calendar, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  CreditCard,
+  AlertCircle,
+  Bell,
+  Calendar,
+  Sparkles,
+  Clock,
+} from "lucide-react";
+
+import { PROGRAM_ID } from "../../../../utils/programConfig";
 
 const typeMeta = {
   appointment_confirmed: {
@@ -35,6 +45,11 @@ const typeMeta = {
     bg: "bg-purple-50",
     color: "text-purple-500",
   },
+  plan_expiring: {
+    icon: Clock,
+    bg: "bg-orange-50",
+    color: "text-orange-500",
+  },
   general: {
     icon: Bell,
     bg: "bg-gray-50",
@@ -65,7 +80,9 @@ export default function NotificationItem({ notification, onClick }) {
           : "border-orange-100 bg-orange-50/30 hover:border-orange-200"
       }`}
     >
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${meta.bg}`}>
+      <div
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${meta.bg}`}
+      >
         <Icon size={16} className={meta.color} />
       </div>
 
@@ -81,7 +98,14 @@ export default function NotificationItem({ notification, onClick }) {
             {formatTimeAgo(notification.createdAt)}
           </span>
         </div>
-        <p className="text-xs text-gray-600 mt-1 leading-relaxed">{notification.body}</p>
+        <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+          {notification.body}
+        </p>
+        {notification.type === "plan_expiring" && notification?.metadata?.programId === PROGRAM_ID && (
+          <span className="inline-block text-xs font-semibold text-orange-500 mt-1.5 hover:underline">
+            Click here to renew your program →
+          </span>
+        )}
       </div>
     </button>
   );

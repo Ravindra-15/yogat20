@@ -59,5 +59,9 @@ export const fetchMySubscription = async (programId) => {
   const response = await authApi.get("/customer/billing/subscription", {
     params: { programId },
   });
-  return response.data.data.subscription;
+  // return both the active subscription and any queued renewal
+  return {
+    subscription: response.data.data.subscription,
+    pendingRenewal: response.data.data.pendingRenewal || null,
+  };
 };
