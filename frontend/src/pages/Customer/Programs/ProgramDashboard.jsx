@@ -226,17 +226,20 @@ export default function ProgramDashboard() {
   const [entitlement, setEntitlement] = useState(0);
   const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
 
+  // 🎂 birthday wish popup (user closes manually — no auto-close)
+  const [birthdayPopupOpen, setBirthdayPopupOpen] = useState(false);
+
   // 🔔 plan-expiry welcome popup
   const [expiryPopupOpen, setExpiryPopupOpen] = useState(false);
   const [expiryInfo, setExpiryInfo] = useState(null);
   const expiryTimerRef = useRef(null);
 
-  // auto-close the expiry popup after 5s
+  // auto-close the expiry popup after 5s (only once it's actually visible, i.e. birthday popup closed)
   useEffect(() => {
-    if (!expiryPopupOpen) return;
+    if (!expiryPopupOpen || birthdayPopupOpen) return;
     expiryTimerRef.current = setTimeout(() => setExpiryPopupOpen(false), 5000);
     return () => clearTimeout(expiryTimerRef.current);
-  }, [expiryPopupOpen]);
+  }, [expiryPopupOpen, birthdayPopupOpen]);
 
   // close popup early + clear timer
   const closeExpiryPopup = () => {
@@ -320,6 +323,28 @@ export default function ProgramDashboard() {
           setUserName(profile?.fullName || profile?.nickName || "");
           // read only THIS program's plan credits from the per-program map
           setPlanCreditsLeft(profile?.planFreeConsults?.[id] || 0);
+
+          // 🎂 birthday popup — show once per birthday per session
+          if (profile?.dob) {
+            const dob = new Date(profile.dob);
+            const now = new Date();
+            const isBirthday =
+              !isNaN(dob.getTime()) &&
+              dob.getUTCMonth() === now.getUTCMonth() &&
+              dob.getUTCDate() === now.getUTCDate();
+            if (isBirthday) {
+              const sessionTag = (
+                localStorage.getItem("token") ||
+                sessionStorage.getItem("token") ||
+                ""
+              ).slice(-12);
+              const bdayKey = `birthdayPopupShown_${id}_${sessionTag}`;
+              if (sessionStorage.getItem(bdayKey) !== "1") {
+                setBirthdayPopupOpen(true);
+                sessionStorage.setItem(bdayKey, "1");
+              }
+            }
+          }
         }
       } catch {
         // soft fail — greeting shows without a name
@@ -351,13 +376,15 @@ export default function ProgramDashboard() {
           sub.daysUntilExpiry <= 7 &&
           !res?.pendingRenewal
         ) {
+          // store it but only OPEN after the birthday popup is dismissed (birthday has priority)
           setExpiryInfo({
             daysLeft: sub.daysUntilExpiry,
             endDate: sub.endDate,
             programName: sub.programName,
           });
-          setExpiryPopupOpen(true);
           sessionStorage.setItem(popupKey, "1"); // mark shown for this session
+          // open immediately only if no birthday popup is up
+          setExpiryPopupOpen(true);
         }
       } catch {
         // soft fail — no cards shown if subscription can't load
@@ -406,8 +433,54 @@ export default function ProgramDashboard() {
 
  return (
     <div className="min-h-screen bg-[#F6F8FC] flex flex-col">
-      {/* 🔔 PLAN-EXPIRY WELCOME POPUP (auto-closes in 5s) */}
-      {expiryPopupOpen && expiryInfo && (
+      {/* 🎂 BIRTHDAY WISH POPUP (manual close; theme-neutral so it pastes into any program) */}
+      {birthdayPopupOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md px-6 py-8 sm:px-8 text-center relative overflow-hidden">
+            {/* festive top band */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-pink-400 via-amber-400 to-purple-500" />
+
+            <button
+              type="button"
+              onClick={() => setBirthdayPopupOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+
+            {/* cake illustration */}
+            <img
+              src="/images/birthday-cake.png"
+              alt="Birthday cake"
+              className="w-28 h-28 sm:w-32 sm:h-32 object-contain mx-auto mb-4"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+
+            <h3 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">
+              Happy Birthday{userName ? `, ${userName}` : ""}! 🎉
+            </h3>
+            <p className="text-sm text-gray-500 leading-relaxed mb-5">
+              Wishing you a day full of joy and good health. Thank you for being
+              part of the {programTitle} family — here's to another year of
+              progress and wellness! 🎂
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setBirthdayPopupOpen(false)}
+              className="inline-flex items-center justify-center gap-1.5 px-7 py-2.5 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 transition-colors shadow-[0_6px_18px_rgba(168,85,247,0.3)]"
+            >
+              Thank you! 🎈
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔔 PLAN-EXPIRY WELCOME POPUP (auto-closes in 5s) — waits until birthday popup is closed */}
+      {expiryPopupOpen && expiryInfo && !birthdayPopupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md px-7 py-8 text-center relative">
             <button
