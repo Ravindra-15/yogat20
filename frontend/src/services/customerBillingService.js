@@ -63,5 +63,6 @@ export const fetchMySubscription = async (programId) => {
   return {
     subscription: response.data.data.subscription,
     pendingRenewal: response.data.data.pendingRenewal || null,
+    pendingList: response.data.data.pendingList || [],
   };
 };

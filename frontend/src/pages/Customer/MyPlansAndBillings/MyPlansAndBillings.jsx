@@ -43,6 +43,7 @@ export default function MyPlansAndBillings() {
   const [transactions, setTransactions] = useState([]);
   const [subscription, setSubscription] = useState(null);
   const [pendingRenewal, setPendingRenewal] = useState(null);
+  const [pendingList, setPendingList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // 📥 Load billing summary + transactions + subscription
@@ -58,6 +59,7 @@ export default function MyPlansAndBillings() {
         setTransactions(t || []);
         setSubscription(sub?.subscription || null);
         setPendingRenewal(sub?.pendingRenewal || null);
+        setPendingList(sub?.pendingList || []);
       } catch {
         toast.error("Failed to load billing data");
       } finally {
@@ -202,21 +204,40 @@ export default function MyPlansAndBillings() {
         {/* ============================================ */}
         {/* 🔜 PENDING RENEWAL — new plan starts after current ends */}
         {/* ============================================ */}
-        {pendingRenewal && (
-          <div className="bg-[#F5F7FF] rounded-2xl border border-[#D9DDF0] p-5 sm:p-6 mb-6 flex items-start gap-3">
-            <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center shrink-0">
-              <Clock size={18} className="text-white" />
-            </div>
-            <div className="min-w-0">
+        {pendingList.length > 0 && (
+          <div className="bg-[#F5F7FF] rounded-2xl border border-[#D9DDF0] p-5 sm:p-6 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                <Clock size={18} className="text-white" />
+              </div>
               <p className="font-bold text-gray-800 text-sm sm:text-base">
-                Your new plan will start soon
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {pendingRenewal.programName} ({pendingRenewal.tenure}) begins on{" "}
-                <strong>{formatDate(pendingRenewal.startDate)}</strong> — right
-                after your current plan ends. No action needed.
+                {pendingList.length > 1
+                  ? "Your upcoming plans"
+                  : "Your new plan will start soon"}
               </p>
             </div>
+
+            <div className="space-y-2">
+              {pendingList.map((p, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-xl border border-[#E7EAF3] px-4 py-3 flex items-start gap-2"
+                >
+                  <span className="mt-0.5 w-5 h-5 rounded-full bg-[#EEF2FF] text-orange-500 text-[11px] font-bold flex items-center justify-center shrink-0">
+                    {i + 1}
+                  </span>
+                  <p className="text-xs text-gray-600">
+                    {p.programName} ({p.tenure}) — starts{" "}
+                    <strong>{formatDate(p.startDate)}</strong> and ends{" "}
+                    <strong>{formatDate(p.endDate)}</strong>.
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px] text-gray-400 mt-3">
+              These start automatically, one after another. No action needed.
+            </p>
           </div>
         )}
 
