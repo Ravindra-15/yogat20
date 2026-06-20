@@ -14,6 +14,11 @@ import { googleAuth } from "../../services/authService";
 import { useAuth } from "../../context/AuthContext";
 import { hasActiveProgramSubscription } from "../../utils/subscriptionCheck";
 import { PROGRAM_ID } from "../../utils/programConfig";
+import {
+  captureReferralFromUrl,
+  getStoredReferral,
+  clearStoredReferral,
+} from "../../utils/referral";
 
 /* Icons */
 const EyeOpen = () => (
@@ -67,6 +72,11 @@ const Signup = () => {
   const { login } = useAuth();
   const nextPath = new URLSearchParams(window.location.search).get("next");
 
+  // 🔗 capture ?ref= if the user reached signup directly with a referral link
+  useEffect(() => {
+    captureReferralFromUrl();
+  }, []);
+
   const [form, setForm] = useState({ email: "", password: "", phone: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -93,7 +103,8 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      await signupUser(form);
+      const { ref, refProgram } = getStoredReferral();
+      await signupUser({ ...form, ref, refProgram });
 
       // ✅ Clear old session so OTP page doesn't redirect to home
       localStorage.removeItem("token");
@@ -101,6 +112,7 @@ const Signup = () => {
       sessionStorage.removeItem("token");
       sessionStorage.removeItem("user");
 
+      clearStoredReferral();
       navigate("/verify-otp", { state: { email: form.email, next: nextPath } });
     } catch (err) {
       const message =
@@ -118,8 +130,10 @@ const Signup = () => {
     try {
       setLoading(true);
 
-      const { data } = await googleAuth({ accessToken });
+      const { ref, refProgram } = getStoredReferral();
+      const { data } = await googleAuth({ accessToken, ref, refProgram });
 
+      clearStoredReferral();
       login(data.data.token, true);
       localStorage.setItem("user", JSON.stringify(data.data.user));
 
