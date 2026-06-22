@@ -31,6 +31,7 @@ import {
 import { listMyAppointments } from "../../../services/customerAppointmentService";
 import { fetchMyProfile } from "../../../services/customerProfileService";
 import { fetchMySubscription } from "../../../services/customerBillingService";
+import { fetchMyFreeConsultCards } from "../../../services/customerFreeConsultService";
 
 const programTitles = {
   yogat20: "Yoga T20",
@@ -173,6 +174,12 @@ const formatAppointmentDate = (date) => {
   return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${timeStr}`;
 };
 
+// 📅 Short date for card validity (e.g. "Jul 20")
+const formatShortDate = (d) =>
+  d
+    ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : "";
+
 // 🎁 Free consultations entitled by plan tenure.
 // Monthly: floor(months/3). Weekly: floor(weeks/12). Capped at 4 for display.
 const entitlementFromSubscription = (sub) => {
@@ -238,6 +245,11 @@ export default function ProgramDashboard() {
   const [allUpcoming, setAllUpcoming] = useState([]); // every upcoming appointment
   const [entitlement, setEntitlement] = useState(0);
   const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
+
+  // 🎁 NEW per-card free-consult system
+  const [consultCards, setConsultCards] = useState([]); // [{_id,cardIndex,status,validFrom,validUntil,appointment,isBookableNow}]
+  const [bookableCount, setBookableCount] = useState(0);
+  const [showAllCards, setShowAllCards] = useState(false);
 
   // 🎂 birthday wish popup (user closes manually — no auto-close)
   const [birthdayPopupOpen, setBirthdayPopupOpen] = useState(false);
@@ -333,6 +345,24 @@ export default function ProgramDashboard() {
       mounted = false;
     };
   }, []);
+
+  // 📥 Load per-card free consultations for THIS program
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await fetchMyFreeConsultCards(id);
+        if (!mounted) return;
+        setConsultCards(data?.cards || []);
+        setBookableCount(data?.bookableCount || 0);
+      } catch {
+        // soft fail — section just shows nothing extra
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   // 📥 Load the logged-in user's name + plan free-consult credits for the greeting/cards
   useEffect(() => {
@@ -741,52 +771,9 @@ export default function ProgramDashboard() {
             </div>
           </div>
 
+          
           {/* ══════════════════════════════════════════════════ */}
-          {/* 📅 UPCOMING APPOINTMENT (any booking)              */}
-          {/* ══════════════════════════════════════════════════ */}
-          {/* <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                <Calendar size={15} className="text-blue-500" />
-              </div>
-              <span className="font-semibold text-gray-800 text-sm">
-                Upcoming Appointment
-              </span>
-            </div>
-
-            {allUpcoming.length > 0 ? (
-              <div className="bg-blue-50 rounded-xl px-5 py-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
-                    <Bell size={11} className="text-blue-400" />
-                    Upcoming Check-in
-                  </p>
-                  <p className="text-sm font-medium text-gray-700 truncate">
-                    {allUpcoming[0].doctorName ||
-                      allUpcoming[0].doctor?.fullName ||
-                      "Doctor"}{" "}
-                    — {formatAppointmentDate(allUpcoming[0].scheduledAt)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate("/my-appointments")}
-                  className="text-xs font-semibold text-blue-600 hover:underline shrink-0"
-                >
-                  View all
-                </button>
-              </div>
-            ) : (
-              <div className="bg-gray-50 rounded-xl px-5 py-4 text-center">
-                <p className="text-sm text-gray-500">
-                  No upcoming appointments yet.
-                </p>
-              </div>
-            )}
-          </div> */}
-
-          {/* ══════════════════════════════════════════════════ */}
-          {/* 🩺 FREE DOCTOR CONSULTATIONS (plan benefit)        */}
+          {/* 🩺 FREE DOCTOR CONSULTATIONS (per-card system)     */}
           {/* ══════════════════════════════════════════════════ */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-1">
@@ -798,7 +785,7 @@ export default function ProgramDashboard() {
               </span>
             </div>
 
-            {entitlement === 0 ? (
+            {consultCards.length === 0 ? (
               <div className="mt-4 bg-gray-50 rounded-xl px-5 py-4 text-center">
                 <p className="text-sm text-gray-500">
                   Purchase a plan to unlock free doctor consultations.
@@ -806,161 +793,146 @@ export default function ProgramDashboard() {
               </div>
             ) : (
               <>
-                {/* 🔔 daily reminder — only if a free slot is still bookable */}
-                {planCreditsLeft > 0 && (
+                {/* 🔔 nudge — only if at least one card is bookable right now */}
+                {bookableCount > 0 && (
                   <div className="mt-3 mb-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 flex items-center gap-2 shadow-[0_6px_18px_rgba(249,115,22,0.25)]">
                     <Gift size={16} className="text-white shrink-0" />
                     <p className="text-sm font-semibold text-white">
-                      Book Your Free Doctor Consultation
-                      {planCreditsLeft > 1 ? "s" : ""} ({planCreditsLeft} left).
+                      Book your free consultation
+                      {bookableCount > 1 ? "s" : ""} before{" "}
+                      {bookableCount > 1 ? "they expire" : "it expires"} (
+                      {bookableCount} available now).
                     </p>
                   </div>
                 )}
 
-                {/* 🃏 cards — 4 slots, responsive grid
-                    Order: active appointments → bookable/empty → cancelled last */}
+                {/* 🃏 cards grid — 2/row mobile, 3/row desktop; first 4 then Show all */}
                 {(() => {
-                  // top group: only genuinely active bookings (booked / pending / confirmed)
-                  const activeAppts = upcomingAppointments.filter(
-                    (a) => !["cancelled", "completed"].includes(a.status),
+                  // sort: booked first → bookable-now → completed/cancelled/expired (used ones last)
+                  const rank = (c) => {
+                    if (c.status === "booked") return 0;
+                    if (c.status === "available" && c.isBookableNow) return 1;
+                    return 2; // completed / cancelled / expired
+                  };
+                  const sortedCards = [...consultCards].sort(
+                    (a, b) => rank(a) - rank(b) || a.cardIndex - b.cardIndex
                   );
-                  // bottom group: finished or cancelled — pushed below the bookable slots
-                  const doneAppts = upcomingAppointments.filter((a) =>
-                    ["cancelled", "completed"].includes(a.status),
-                  );
+                  const visibleCards = showAllCards
+                    ? sortedCards
+                    : sortedCards.slice(0, 6);
 
-                  // how many "open" (bookable) slots remain inside the plan
-                  const openCount = Math.max(
-                    0,
-                    entitlement - activeAppts.length - doneAppts.length,
-                  );
-
-                  // order: active → bookable (open) → completed/cancelled last
-                  const slots = [
-                    ...activeAppts.map((appt) => ({ kind: "appt", appt })),
-                    ...Array.from({ length: openCount }, () => ({
-                      kind: "open",
-                    })),
-                    ...doneAppts.map((appt) => ({ kind: "appt", appt })),
-                  ].slice(0, 4);
-
-                  // pad up to 4 with locked slots (beyond entitlement)
-                  while (slots.length < 4) slots.push({ kind: "locked" });
+                  const cardBase =
+                    "rounded-2xl border-2 px-4 py-4 min-h-[120px] flex flex-col justify-center transition-all";
 
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                      {slots.map((slot, i) => {
-                        const isWithinPlan =
-                          i < entitlement || slot.kind === "appt";
-                        const appt = slot.kind === "appt" ? slot.appt : null;
-                        const slotNo = i + 1;
+                    <>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-2">
+                        {visibleCards.map((card) => {
+                          const appt = card.appointment;
+                          const status = card.status;
 
-                        // shared card sizing
-                        const cardBase =
-                          "rounded-2xl border-2 px-5 py-5 min-h-[120px] flex flex-col justify-center transition-all";
-
-                        // Locked slot (beyond plan entitlement)
-                        if (slot.kind === "locked") {
-                          return (
-                            <div
-                              key={i}
-                              className={`${cardBase} border-dashed border-gray-200 bg-gray-50/60 opacity-70`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gray-200/70 flex items-center justify-center shrink-0">
-                                  <Lock size={16} className="text-gray-400" />
+                          // 🎫 BOOKABLE card (available + window covers now)
+                          if (status === "available" && card.isBookableNow) {
+                            return (
+                              <button
+                                key={card._id}
+                                type="button"
+                                onClick={() => navigate("/book-doctor")}
+                                className={`${cardBase} text-left border-orange-200 bg-orange-50/40 hover:bg-orange-50 consult-blink`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                                    <Stethoscope size={16} className="text-orange-600" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-bold text-gray-800">
+                                      Free Consultation {card.cardIndex}
+                                    </p>
+                                    <p className="text-xs text-orange-600 font-medium mt-0.5">
+                                      Tap to book →
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-semibold text-gray-400">
-                                    Consultation {slotNo}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-0.5">
-                                    Upgrade your plan to unlock
-                                  </p>
+                                <p className="text-[10px] text-gray-400 mt-2">
+                                  Valid until {formatShortDate(card.validUntil)}
+                                </p>
+                              </button>
+                            );
+                          }
+
+                          // 🔒 NOT YET active (future window) — available but validFrom in future
+                          if (status === "available" && !card.isBookableNow) {
+                            return (
+                              <div
+                                key={card._id}
+                                className={`${cardBase} border-dashed border-gray-200 bg-gray-50/60 opacity-80`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-gray-200/70 flex items-center justify-center shrink-0">
+                                    <Clock size={16} className="text-gray-400" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-gray-500">
+                                      Consultation {card.cardIndex}
+                                    </p>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">
+                                      Unlocks {formatShortDate(card.validFrom)}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        }
+                            );
+                          }
 
-                        // A free-consult appointment occupies this slot → show its state (disabled)
-                        if (appt) {
-                          const isCancelled = appt.status === "cancelled";
-                          const isCompleted = appt.status === "completed";
-                          // show Join only for active (not cancelled/completed) bookings with a sent link
+                          // ✅ BOOKED / COMPLETED / CANCELLED / EXPIRED → show appointment or status
+                          const isCancelled = status === "cancelled";
+                          const isCompleted = status === "completed";
+                          const isExpired = status === "expired";
                           const canJoin =
-                            !isCancelled &&
-                            !isCompleted &&
+                            status === "booked" &&
+                            appt &&
                             !!appt.meetingLink &&
                             !!appt.meetingLinkSentAt;
-                          const tone = isCancelled
-                            ? {
-                                border: "border-gray-200",
-                                bg: "bg-gray-50",
-                                icon: "bg-gray-100",
-                                iconColor: "text-gray-400",
-                                badge: "text-gray-500 bg-gray-100",
-                                label: "Cancelled",
-                              }
-                            : isCompleted
-                              ? {
-                                  border: "border-emerald-200",
-                                  bg: "bg-emerald-50/50",
-                                  icon: "bg-emerald-100",
-                                  iconColor: "text-emerald-600",
-                                  badge: "text-emerald-700 bg-emerald-100",
-                                  label: "Completed",
-                                }
-                              : {
-                                  border: "border-emerald-200",
-                                  bg: "bg-emerald-50/50",
-                                  icon: "bg-emerald-100",
-                                  iconColor: "text-emerald-600",
-                                  badge: "text-emerald-700 bg-emerald-100",
-                                  label: "Booked",
-                                };
+
+                          const tone =
+                            isCancelled || isExpired
+                              ? { border: "border-gray-200", bg: "bg-gray-50", icon: "bg-gray-100", iconColor: "text-gray-400", badge: "text-gray-500 bg-gray-100", label: isExpired ? "Expired" : "Cancelled" }
+                              : isCompleted
+                              ? { border: "border-emerald-200", bg: "bg-emerald-50/50", icon: "bg-emerald-100", iconColor: "text-emerald-600", badge: "text-emerald-700 bg-emerald-100", label: "Completed" }
+                              : { border: "border-emerald-200", bg: "bg-emerald-50/50", icon: "bg-emerald-100", iconColor: "text-emerald-600", badge: "text-emerald-700 bg-emerald-100", label: "Booked" };
 
                           return (
                             <div
-                              key={i}
-                              className={`${cardBase} ${tone.border} ${tone.bg} ${isCancelled ? "opacity-80" : ""}`}
+                              key={card._id}
+                              className={`${cardBase} ${tone.border} ${tone.bg} ${isCancelled || isExpired ? "opacity-80" : ""}`}
                             >
                               <div className="flex items-center gap-3">
-                                <div
-                                  className={`w-10 h-10 rounded-xl ${tone.icon} flex items-center justify-center shrink-0`}
-                                >
-                                  <Calendar
-                                    size={16}
-                                    className={tone.iconColor}
-                                  />
+                                <div className={`w-10 h-10 rounded-xl ${tone.icon} flex items-center justify-center shrink-0`}>
+                                  <Calendar size={16} className={tone.iconColor} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p
-                                    className={`text-sm font-bold truncate ${isCancelled ? "text-gray-500 line-through" : "text-gray-800"}`}
-                                  >
-                                    {appt.doctorName ||
-                                      appt.doctor?.fullName ||
-                                      "Doctor"}
+                                  <p className={`text-sm font-bold truncate ${isCancelled || isExpired ? "text-gray-500 line-through" : "text-gray-800"}`}>
+                                    {appt
+                                      ? appt.doctorName || "Doctor"
+                                      : `Consultation ${card.cardIndex}`}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-0.5">
-                                    {formatAppointmentDate(appt.scheduledAt)}
+                                    {appt
+                                      ? formatAppointmentDate(appt.scheduledAt)
+                                      : isExpired
+                                      ? "Not used in time"
+                                      : ""}
                                   </p>
                                 </div>
-                                <span
-                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${tone.badge}`}
-                                >
+                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${tone.badge}`}>
                                   {tone.label}
                                 </span>
                               </div>
 
-                              {/* 🔗 meeting link + Join Now (once doctor sends it) */}
                               {canJoin && (
                                 <div className="mt-3 pt-3 border-t border-emerald-100 space-y-2">
                                   <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-                                    <Video
-                                      size={12}
-                                      className="text-orange-500 shrink-0"
-                                    />
+                                    <Video size={12} className="text-orange-500 shrink-0" />
                                     <a
                                       href={appt.meetingLink}
                                       target="_blank"
@@ -984,66 +956,30 @@ export default function ProgramDashboard() {
                               )}
                             </div>
                           );
-                        }
+                        })}
+                      </div>
 
-                        // Open slot → bookable only if real credits remain
-                        if (slot.kind === "open" && planCreditsLeft > 0) {
-                          return (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => navigate("/book-doctor")}
-                              className={`${cardBase} text-left border-orange-200 bg-orange-50/40 hover:bg-orange-50 consult-blink`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-                                  <Stethoscope
-                                    size={16}
-                                    className="text-orange-600"
-                                  />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-bold text-gray-800">
-                                    Free Consultation {slotNo}
-                                  </p>
-                                  <p className="text-xs text-orange-600 font-medium mt-0.5">
-                                    Tap to book your free consultation →
-                                  </p>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        }
-
-                        // Within plan but no appointment and no credits left → used/empty (disabled)
-                        return (
-                          <div
-                            key={i}
-                            className={`${cardBase} border-dashed border-gray-200 bg-gray-50/60 opacity-70`}
+                      {/* Show all / less toggle (only if > 4 cards) */}
+                      {consultCards.length > 4 && (
+                        <div className="flex justify-center mt-4">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllCards((v) => !v)}
+                            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-semibold text-orange-600 border border-orange-200 hover:bg-orange-50 transition-colors"
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-gray-200/70 flex items-center justify-center shrink-0">
-                                <Lock size={16} className="text-gray-400" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-gray-400">
-                                  Consultation {slotNo}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  No free consultation available
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                            {showAllCards
+                              ? "Show less"
+                              : `Show all (${consultCards.length})`}
+                          </button>
+                        </div>
+                      )}
+                    </>
                   );
                 })()}
               </>
             )}
           </div>
-        </div>
+          </div>
       </main>
 
       <CustomerFooter />

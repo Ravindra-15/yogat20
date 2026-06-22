@@ -31,6 +31,7 @@ import {
 } from "../../../utils/customerAuthHelper";
 
 import { fetchMyProfile } from "../../../services/customerProfileService";
+import { fetchMyFreeConsultCards } from "../../../services/customerFreeConsultService";
 import useMyBodyProfile from "../../../hooks/useMyBodyProfile";
 
 const BOOKING_FEE = 20;
@@ -113,13 +114,16 @@ const Checkout = () => {
         if (!isMountedRef.current) return;
         setDoctor(doc);
 
-        // 🎁 Check free credits (plan consults + cancel credits)
+        // 🎁 Check free credits: cancel credits (Map) + plan consult CARDS (new system)
         try {
-          const profile = await fetchMyProfile();
+          const [profile, cardData] = await Promise.all([
+            fetchMyProfile(),
+            fetchMyFreeConsultCards(PLATFORM).catch(() => null),
+          ]);
           if (isMountedRef.current) {
             setFreeCredits(profile?.freeAppointmentCredits || 0);
-            // read only THIS program's plan credits from the per-program map
-            setPlanConsults(profile?.planFreeConsults?.[PLATFORM] || 0);
+            // a bookable card right now = this booking is a free plan consult
+            setPlanConsults(cardData?.bookableCount || 0);
           }
         } catch (err) {
           // soft fail — payment flow still works
