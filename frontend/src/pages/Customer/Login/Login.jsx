@@ -72,6 +72,8 @@ const Login = () => {
   const location = useLocation();
 
   const { login } = useAuth();
+  const emailRef = React.useRef(null);
+  const passwordRef = React.useRef(null);
 
   const [form, setForm] = useState({
     email: "",
@@ -105,6 +107,8 @@ const Login = () => {
         email: !form.email,
         password: !form.password,
       });
+      if (!form.email) emailRef.current?.focus();
+      else passwordRef.current?.focus();
       return toast.error("All fields are required");
     }
 
@@ -260,6 +264,7 @@ const Login = () => {
           <div className="w-full max-w-[330px] mx-auto flex flex-col gap-4">
             {/* EMAIL */}
             <input
+              ref={emailRef}
               type="email"
               placeholder="Email id"
               name="email"
@@ -267,14 +272,15 @@ const Login = () => {
               onChange={handleChange}
               className={`w-full border rounded-xl px-4 py-3 text-[14px] font-normal outline-none transition-colors ${
                 errors.email
-                  ? "border-red-400 focus:border-red-500"
-                  : "border-gray-300 focus:border-orange-400"
+                  ? "border-red-400 ring-2 ring-red-300 focus:border-red-500"
+                  : "border-gray-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
               }`}
             />
 
             {/* PASSWORD */}
             <div className="relative">
               <input
+                ref={passwordRef}
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 name="password"
@@ -282,8 +288,8 @@ const Login = () => {
                 onChange={handleChange}
                 className={`w-full border rounded-xl px-4 py-3 text-[14px] font-normal outline-none transition-colors ${
                   errors.password
-                    ? "border-red-400 focus:border-red-500"
-                    : "border-gray-300 focus:border-orange-400"
+                    ? "border-red-400 ring-2 ring-red-300 focus:border-red-500"
+                    : "border-gray-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
                 }`}
               />
               <button
