@@ -70,6 +70,14 @@ const WhatsAppIcon = () => (
 const Signup = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const emailRef = React.useRef(null);
+  const passwordRef = React.useRef(null);
+  const phoneRef = React.useRef(null);
+  const [errors, setErrors] = useState({
+    email: false,
+    password: false,
+    phone: false,
+  });
   const nextPath = new URLSearchParams(window.location.search).get("next");
 
   // 🔗 capture ?ref= if the user reached signup directly with a referral link
@@ -90,16 +98,41 @@ const Signup = () => {
       ...form,
       [name]: name === "email" ? value.toLowerCase().trim() : value,
     });
-  };
 
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: false }));
+  };
   const handleSignup = async () => {
     if (!agreed) {
       return toast.error(
         "Please accept the Terms of Service and Privacy Policy.",
       );
     }
+    // mark + focus any empty field (ring effect)
+    const emptyFlags = {
+      email: !form.email,
+      password: !form.password,
+      phone: !form.phone,
+    };
+    if (emptyFlags.email || emptyFlags.password || emptyFlags.phone) {
+      setErrors(emptyFlags);
+      if (emptyFlags.email) emailRef.current?.focus();
+      else if (emptyFlags.password) passwordRef.current?.focus();
+      else phoneRef.current?.focus();
+    }
+
     const error = validateSignup(form);
-    if (error) return toast.error(error);
+    if (error) {
+      // validator failed — if it's about a specific field, ring it
+      const lower = error.toLowerCase();
+      setErrors({
+        email: lower.includes("email"),
+        password: lower.includes("password"),
+        phone: lower.includes("phone") || lower.includes("number"),
+      });
+      return toast.error(error);
+    }
+    // all good → clear any rings
+    setErrors({ email: false, password: false, phone: false });
 
     try {
       setLoading(true);
@@ -140,7 +173,7 @@ const Signup = () => {
       toast.success("Welcome!");
       sessionStorage.removeItem("welcomeShown");
 
-     const user = data.data.user;
+      const user = data.data.user;
       const profileStepOneComplete = user?.fullName && user?.nickName;
       const profileStepTwoComplete = user?.dob && user?.country && user?.city;
 
@@ -178,7 +211,8 @@ const Signup = () => {
   };
 
   const googleLogin = useGoogleLogin({
-    onSuccess: (tokenResponse) => handleGoogleSuccess(tokenResponse.access_token),
+    onSuccess: (tokenResponse) =>
+      handleGoogleSuccess(tokenResponse.access_token),
     onError: () => toast.error("Google sign-in failed"),
   });
 
@@ -209,23 +243,33 @@ const Signup = () => {
           <div className="w-full max-w-[330px] mx-auto flex flex-col gap-4">
             {/* Email */}
             <input
+              ref={emailRef}
               type="email"
               placeholder="Email id"
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[14px] font-normal outline-none focus:border-orange-400"
+              className={`w-full border rounded-xl px-4 py-3 text-[14px] font-normal outline-none transition-colors ${
+                errors.email
+                  ? "border-red-400 ring-2 ring-red-300 focus:border-red-500"
+                  : "border-gray-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
+              }`}
             />
 
             {/* Password */}
             <div className="relative">
               <input
+                ref={passwordRef}
                 type={showPassword ? "text" : "password"}
                 placeholder="Create Password"
                 name="password"
                 value={form.password}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[14px] font-normal outline-none focus:border-orange-400"
+                className={`w-full border rounded-xl px-4 py-3 text-[14px] font-normal outline-none transition-colors ${
+                  errors.password
+                    ? "border-red-400 ring-2 ring-red-300 focus:border-red-500"
+                    : "border-gray-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
+                }`}
               />
               <button
                 type="button"
@@ -242,12 +286,17 @@ const Signup = () => {
                 +91
               </div>
               <input
+                ref={phoneRef}
                 type="tel"
                 placeholder="Whatsapp Number"
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-[14px] font-normal outline-none focus:border-orange-400"
+                className={`w-full border rounded-xl px-4 py-3 text-[14px] font-normal outline-none transition-colors ${
+                  errors.phone
+                    ? "border-red-400 ring-2 ring-red-300 focus:border-red-500"
+                    : "border-gray-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-200"
+                }`}
               />
             </div>
 
@@ -312,7 +361,11 @@ const Signup = () => {
             <p className="text-[13px] text-[#6B7280] text-center mt-2">
               Already have an account?{" "}
               <Link
-                to={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"}
+                to={
+                  nextPath
+                    ? `/login?next=${encodeURIComponent(nextPath)}`
+                    : "/login"
+                }
                 className="text-orange-500 font-medium hover:underline"
               >
                 Log in
