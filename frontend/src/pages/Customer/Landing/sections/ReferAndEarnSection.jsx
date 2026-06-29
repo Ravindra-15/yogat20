@@ -1,6 +1,14 @@
 // Yoga T20 - Refer and Earn Section
 
+// Yoga T20 - Refer and Earn Section
+
 import { Send, Trophy, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import {
+  isCustomerLoggedIn,
+  buildLoginRedirect,
+} from "../../../../utils/customerAuthHelper";
 
 function StepCircle({ icon: Icon, title, subtitle }) {
   return (
@@ -18,6 +26,18 @@ function StepCircle({ icon: Icon, title, subtitle }) {
 }
 
 export default function ReferAndEarnSection() {
+  const navigate = useNavigate();
+
+  // 🔐 logged-in → refer page; otherwise → login with return path
+  const handleLearnMore = () => {
+    if (isCustomerLoggedIn()) {
+      navigate("/refer-and-earn");
+    } else {
+      toast.error("Please login first to access Refer & Earn");
+      navigate(buildLoginRedirect("/refer-and-earn"));
+    }
+  };
+
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -64,6 +84,17 @@ export default function ReferAndEarnSection() {
                 subtitle="Yoga T20 Subscription"
               />
             </div>
+          </div>
+
+          {/* CTA button */}
+          <div className="relative z-10 mt-10 sm:mt-12 text-center">
+            <button
+              type="button"
+              onClick={handleLearnMore}
+              className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base font-semibold px-10 sm:px-14 py-3 rounded-full shadow-[0_4px_14px_rgba(249,115,22,0.35)] transition-colors"
+            >
+              Learn More !
+            </button>
           </div>
         </div>
       </div>
