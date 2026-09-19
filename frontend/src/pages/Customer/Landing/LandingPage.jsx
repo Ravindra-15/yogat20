@@ -2,7 +2,10 @@
 // Final section order matching figma flow
 
 import { useEffect } from "react";
-import { captureReferralFromUrl } from "../../../utils/referral";
+import {
+  captureReferralFromUrl,
+  scrollToPricingOnReferral,
+} from "../../../utils/referral";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
 import HeroSection from "./sections/HeroSection";
@@ -20,9 +23,11 @@ import WelcomePopup from "./components/WelcomePopup";
 
 import { useLocation } from "react-router-dom";
 export default function LandingPage() {
-  // 🔗 capture ?ref= referral code from the URL on landing
+  // 🔗 capture ?ref= referral code from the URL on landing,
+  // then take referral visitors straight to the pricing section
   useEffect(() => {
     captureReferralFromUrl();
+    return scrollToPricingOnReferral();
   }, []);
 
   const location = useLocation();

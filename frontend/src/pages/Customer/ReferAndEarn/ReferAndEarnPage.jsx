@@ -27,6 +27,9 @@ export default function ReferAndEarnPage() {
 
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  // 🚫 max-rewards limit — blocks further sharing and shows a popup
+  const [limit, setLimit] = useState({ reached: false, max: 24 });
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [stats, setStats] = useState({
     invitesSent: 0,
     friendsJoined: 0,
@@ -41,6 +44,10 @@ export default function ReferAndEarnPage() {
         const data = await fetchMyReferral();
         setReferralCode(data?.referralCode || "");
         if (data?.stats) setStats(data.stats);
+        setLimit({
+          reached: !!data?.limitReached,
+          max: data?.maxRewards || 24,
+        });
       } catch {
         // soft fail — page still renders with empty values
       }
@@ -53,6 +60,7 @@ export default function ReferAndEarnPage() {
     : "Generating your link...";
 
   const handleCopy = async () => {
+    if (limit.reached) return setShowLimitModal(true);
     try {
       await navigator.clipboard.writeText(referralLink);
       setCopied(true);
@@ -64,6 +72,7 @@ export default function ReferAndEarnPage() {
   };
 
   const handleWhatsAppShare = () => {
+    if (limit.reached) return setShowLimitModal(true);
     const message = encodeURIComponent(
       `Hey! Join Zealtho with my referral and get 30 days of Yoga T20 free: ${referralLink}`
     );
@@ -217,6 +226,38 @@ export default function ReferAndEarnPage() {
       </main>
 
       <CustomerFooter />
+
+      {/* 🚫 Referral limit reached popup */}
+      {showLimitModal && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center px-4"
+          onClick={() => setShowLimitModal(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="bg-white rounded-3xl w-full max-w-md p-8 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-orange-50 flex items-center justify-center mx-auto mb-4">
+              <Trophy size={22} className="text-orange-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Referral limit reached
+            </h3>
+            <p className="text-gray-600 text-sm sm:text-base mb-6">
+              Thank you for reaching the maximum referral limit of {limit.max}{" "}
+              members.
+            </p>
+            <button
+              onClick={() => setShowLimitModal(false)}
+              className="w-full px-6 py-3 bg-orange-400 hover:bg-orange-500 text-white text-sm font-semibold rounded-full shadow-[0_4px_14px_rgba(249,115,22,0.3)] transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

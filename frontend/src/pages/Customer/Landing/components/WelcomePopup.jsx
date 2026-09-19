@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { hasReferralInUrl } from "../../../../utils/referral";
 
 export default function WelcomePopup() {
   const [open, setOpen] = useState(false);
@@ -13,7 +14,8 @@ export default function WelcomePopup() {
     const alreadyShown = sessionStorage.getItem("landingWelcomeShown");
 
     // show popup only for guest users, once per session
-    if (!token && !alreadyShown) {
+    // (skipped for referral visitors — they go straight to the pricing section)
+    if (!token && !alreadyShown && !hasReferralInUrl()) {
       setOpen(true);
       sessionStorage.setItem("landingWelcomeShown", "true");
     }

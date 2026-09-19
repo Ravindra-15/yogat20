@@ -27,7 +27,7 @@ const ProfileStepOne = () => {
       JSON.parse(sessionStorage.getItem("user"));
 
     if (user?.dob && user?.country && user?.city) {
-      navigate("/book-doctor", { replace: true });
+      navigate(nextPath || "/book-doctor", { replace: true });
       return;
     }
 
@@ -67,7 +67,12 @@ const ProfileStepOne = () => {
         sessionStorage.setItem("user", JSON.stringify(updatedUser));
       }
 
-      navigate("/profile-step-2");
+      // keep ?next= so the user still reaches the tenure screen after step 2
+      navigate(
+        nextPath
+          ? `/profile-step-2?next=${encodeURIComponent(nextPath)}`
+          : "/profile-step-2",
+      );
     } catch (err) {
       const message =
         err?.response?.data?.message || err.message || "Something went wrong";

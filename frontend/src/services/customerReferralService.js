@@ -22,3 +22,9 @@ export const fetchMyReferral = async () => {
   const response = await authApi.get("/customer/referral/me");
   return response.data.data; // { referralCode, stats }
 };
+
+// 👤 GET the name of whoever sent me the referral link (null if nobody did)
+export const fetchMyReferrer = async () => {
+  const response = await authApi.get("/customer/referral/referrer");
+  return response.data.data?.referrerName || null;
+};
