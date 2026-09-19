@@ -26,8 +26,11 @@ export default function ProgramSuccess() {
   // }, [id, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-500/60 flex items-center justify-center px-4 py-12">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border-2 border-teal-400">
+    // fixed + inset-0 so the overlay also covers the navbar spacer (pt-16 in
+    // App.jsx) — this page has no navbar. m-auto centres the card but still
+    // lets short screens scroll instead of clipping the top.
+    <div className="fixed inset-0 z-50 bg-gray-500/60 flex overflow-y-auto px-4 py-12">
+      <div className="m-auto bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border-2 border-teal-400">
         <div className="h-1.5 w-full bg-gradient-to-r from-teal-400 to-teal-600" />
 
         <div className="px-12 py-14 flex flex-col items-center text-center">
