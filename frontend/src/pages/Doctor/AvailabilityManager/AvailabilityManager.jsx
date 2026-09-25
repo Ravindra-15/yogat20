@@ -22,8 +22,15 @@ import SlotContextMenu from "./components/SlotContextMenu";
 import AddBreakModal from "./components/AddBreakModal";
 import OnBreakOverlay from "./components/OnBreakOverlay";
 import CalendarLegendInfo from "./components/CalendarLegendInfo";
+import { useDoctorAuth } from "../../../context/DoctorAuthContext";
+import { buildZonedSlotDate, DEFAULT_TIMEZONE } from "../../../utils/time";
 
 const AvailabilityManager = () => {
+  const { doctor } = useDoctorAuth();
+  // 🌍 This doctor's own zone — every "HH:MM" they set/block is their own
+  // local wall-clock time, converted through THIS zone into a real instant.
+  const doctorTimezone = doctor?.timezone || DEFAULT_TIMEZONE;
+
   const {
     weekData,
     loading,
@@ -63,9 +70,9 @@ const AvailabilityManager = () => {
   // ============================================
   const handleBlockSlot = async (date, time) => {
     try {
-      const [h, m] = time.split(":").map(Number);
-      const startsAt = new Date(`${date}T00:00:00.000Z`);
-      startsAt.setUTCHours(h, m, 0, 0);
+      // 🌍 "time" is this doctor's own local "HH:MM" — convert through
+      // their zone, not a raw UTC guess.
+      const startsAt = buildZonedSlotDate(date, time, doctorTimezone);
       const endsAt = new Date(startsAt.getTime() + 30 * 60 * 1000);
       await createTimeOff({
         type: "slot",
@@ -82,9 +89,16 @@ const AvailabilityManager = () => {
 
   const handleBlockDay = async (date) => {
     try {
-      const startsAt = new Date(`${date}T00:00:00.000Z`);
-      const endsAt = new Date(startsAt);
-      endsAt.setUTCDate(endsAt.getUTCDate() + 1);
+      // 🌍 Block this doctor's own local calendar day — midnight to
+      // midnight IN THEIR ZONE (a DST-transition day can be 23h or 25h;
+      // computing both boundaries through their zone gets that right).
+      const startsAt = buildZonedSlotDate(date, "00:00", doctorTimezone);
+      const nextDateStr = (() => {
+        const d = new Date(`${date}T12:00:00.000Z`); // noon avoids any DST edge on the date math itself
+        d.setUTCDate(d.getUTCDate() + 1);
+        return d.toISOString().split("T")[0];
+      })();
+      const endsAt = buildZonedSlotDate(nextDateStr, "00:00", doctorTimezone);
       await createTimeOff({
         type: "day",
         startsAt: startsAt.toISOString(),
