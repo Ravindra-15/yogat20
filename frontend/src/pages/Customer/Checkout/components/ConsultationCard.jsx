@@ -7,27 +7,7 @@
 import React from "react";
 import { Calendar, Clock, CheckCircle2, User } from "lucide-react";
 import { buildDoctorPhotoUrl } from "../../../../services/customerDoctorService";
-
-// 🗓️ Format ISO → "Jan 25, 2026"
-const formatDate = (isoString) => {
-  if (!isoString) return "—";
-  return new Date(isoString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
-// ⏰ Format ISO → "10:00 AM"
-const formatTime = (isoString) => {
-  if (!isoString) return "—";
-  return new Date(isoString).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "UTC",
-  });
-};
+import { formatUtcDate as formatDate, formatUtcTime12h as formatTime } from "../../../../utils/time";
 
 const ConsultationCard = ({
   doctor,            // { fullName, domain, photo, updatedAt }

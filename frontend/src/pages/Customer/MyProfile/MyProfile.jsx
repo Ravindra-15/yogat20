@@ -17,6 +17,7 @@ import {
 
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
+import { getViewerTimezone } from "../../../utils/time";
 
 import { useAuth } from "../../../context/AuthContext";
 
@@ -164,6 +165,7 @@ export default function MyProfile() {
         {
           month: "short",
           year: "numeric",
+          timeZone: getViewerTimezone(), // 🌍 viewer's own zone, not the browser's bare default
         }
       )
     : "—";

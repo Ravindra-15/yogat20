@@ -23,17 +23,19 @@ import {
   fetchMySubscription,
 } from "../../../services/customerBillingService";
 import TransactionRow from "./components/TransactionRow";
+import { getViewerTimezone } from "../../../utils/time";
 
 // 🏢 This frontend's program — change only this line when copying to another program
 const PROGRAM_ID = "yogat20";
 
-// 📅 Format a date as "Jan 1, 2026"
+// 📅 Format a date as "Jan 1, 2026", in the viewer's own zone
 const formatDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
+        timeZone: getViewerTimezone(),
       })
     : "—";
 
