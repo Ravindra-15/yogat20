@@ -1,6 +1,7 @@
 // Yoga T20 - Pricing Section
 
 import { useEffect, useState } from "react";
+import { useCurrency } from "../../../../hooks/useCurrency";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { getSubscriptionRedirect } from "../../../../utils/subscriptionGuard";
@@ -25,7 +26,6 @@ const features = [
 
 const PROGRAM_ID = "yogat20";
 
-const formatPrice = (n) => `$${Number(n || 0).toLocaleString("en-US")}`;
 
 const calcMonthlyPrice = (plan) => {
   const months = plan.durationMonths || parseMonths(plan.planName) || 1;
@@ -43,6 +43,7 @@ export default function PricingSection() {
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { convert } = useCurrency();
 
   useEffect(() => {
     let mounted = true;
@@ -148,7 +149,7 @@ export default function PricingSection() {
                     }`}
                   >
                     {plan.originalPrice > plan.offerPrice
-                      ? formatPrice(plan.originalPrice)
+                      ? convert(plan.originalPrice)
                       : "\u00A0"}
                   </p>
 
@@ -159,7 +160,7 @@ export default function PricingSection() {
                         isBestseller ? "text-white" : "text-gray-900"
                       }`}
                     >
-                      {formatPrice(monthlyPrice)}
+                      {convert(monthlyPrice)}
                     </span>
                     <span
                       className={`ml-2 text-xs sm:text-sm font-medium ${

@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { getProgramPlans } from "../../../services/programPlanService";
+import { useCurrency } from "../../../hooks/useCurrency";
 
 const programNames = {
   yogat20: "Yoga T20",
@@ -21,6 +22,7 @@ export default function SelectTenure() {
 
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { convert } = useCurrency();
 
   // 🔒 Subscription guard (existing logic preserved)
   useEffect(() => {
@@ -131,12 +133,12 @@ export default function SelectTenure() {
 
                   <p className="text-xs text-gray-400 line-through mb-1 min-h-[16px]">
                     {plan.originalPrice > plan.offerPrice
-                      ? `$ ${plan.originalPrice}`
+                      ? convert(plan.originalPrice)
                       : "\u00A0"}
                   </p>
 
                   <p className="text-2xl font-bold text-gray-800 mb-4">
-                    $ {plan.offerPrice}
+                    {convert(plan.offerPrice)}
                   </p>
 
                   <button
