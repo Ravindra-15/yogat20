@@ -15,16 +15,19 @@ import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
 import DoctorDetailHeader from "./components/DoctorDetailHeader";
 import DateCalendar from "./components/DateCalendar";
 import TimeSlotGrid from "./components/TimeSlotGrid";
+import DoctorTestimonials from "./components/DoctorTestimonials";
 
 import {
   isCustomerLoggedIn,
   buildLoginRedirect,
 } from "../../../utils/customerAuthHelper";
 
-import { getPublicDoctor } from "../../../services/customerDoctorService";
+import { getPublicDoctor, getDoctorFeedbackSummary } from "../../../services/customerDoctorService";
 import { listMyAppointments } from "../../../services/customerAppointmentService";
 import useDoctorDayAvailability from "../../../hooks/useDoctorDayAvailability";
 import { buildZonedSlotDate, getViewerTimezone, DEFAULT_TIMEZONE } from "../../../utils/time";
+
+const THEME_COLOR = "#F97316";
 
 // 🗓️ Default to today (UTC YYYY-MM-DD)
 const todayIso = () => {
@@ -40,6 +43,7 @@ const DoctorDetail = () => {
   const [doctor, setDoctor] = useState(null);
   const [doctorLoading, setDoctorLoading] = useState(true);
   const [doctorError, setDoctorError] = useState(null);
+  const [ratingSummary, setRatingSummary] = useState(null);
 
  const [selectedDate, setSelectedDate] = useState(todayIso());
   const [selectedTime, setSelectedTime] = useState("");
@@ -127,6 +131,25 @@ const DoctorDetail = () => {
       isMountedRef.current = false;
     };
   }, [id]);
+
+  // ⭐ Rating summary — separate call so a failure here never blocks the
+  // booking flow itself (just hides the rating block, see header component)
+  useEffect(() => {
+    let mounted = true;
+    getDoctorFeedbackSummary(id)
+      .then((summary) => {
+        if (mounted) setRatingSummary(summary);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  // 🖱️ "Feedback" link in the header scrolls down to the testimonials section
+  const scrollToTestimonials = () => {
+    document.getElementById("doctor-testimonials")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // ============================================
   // 📅 LOAD DAY AVAILABILITY
@@ -236,7 +259,12 @@ const DoctorDetail = () => {
             </div>
           ) : (
             <>
-              <DoctorDetailHeader doctor={doctor} />
+              <DoctorDetailHeader
+                doctor={doctor}
+                ratingSummary={ratingSummary}
+                onFeedbackClick={scrollToTestimonials}
+                themeColor={THEME_COLOR}
+              />
 
               {/* ============================================ */}
               {/* 📅 SLOT PICKER CARD                            */}
@@ -304,6 +332,11 @@ const DoctorDetail = () => {
                   </button>
                 </div>
               </div>
+
+              {/* ============================================ */}
+              {/* 💬 TESTIMONIALS                                */}
+              {/* ============================================ */}
+              <DoctorTestimonials doctorId={id} themeColor={THEME_COLOR} />
             </>
           )}
         </div>
