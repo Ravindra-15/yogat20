@@ -4,9 +4,11 @@
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Clock } from "lucide-react";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { getProgramPlans } from "../../../services/programPlanService";
 import { useCurrency } from "../../../hooks/useCurrency";
+import { fetchTrialStatus } from "../../../services/customerFreeTrialService";
 
 const programNames = {
   yogat20: "Yoga T20",
@@ -23,6 +25,28 @@ export default function SelectTenure() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const { convert } = useCurrency();
+
+  // 🆓 Block purchasing while an active trial is running — checked here,
+  // on the tenure screen, so it's caught before checkout rather than at
+  // the final "Pay" step.
+  const [trialInfo, setTrialInfo] = useState(null);
+  useEffect(() => {
+    if (id !== "yogat20") return;
+    let mounted = true;
+    fetchTrialStatus()
+      .then((data) => {
+        if (mounted) setTrialInfo(data);
+      })
+      .catch(() => {
+        // soft fail — if the check itself fails, don't block the page;
+        // the backend still enforces this at purchase time regardless.
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  const isTrialBlocked = trialInfo?.state === "active_trial";
 
   // 🔒 Subscription guard (existing logic preserved)
   useEffect(() => {
@@ -55,6 +79,7 @@ export default function SelectTenure() {
   }, [id]);
 
   const handleSelect = (plan) => {
+    if (isTrialBlocked) return; // defensive — button is already hidden in this state
     navigate(`/programs/${id}/checkout`, {
       state: {
         tenure: plan.planName,
@@ -78,6 +103,23 @@ export default function SelectTenure() {
             , Select your Program Duration
           </p>
         </div>
+
+        {/* 🆓 Trial banner — shown above the plans, doesn't hide them.
+            User can browse/compare pricing, just can't check out yet. */}
+        {!loading && isTrialBlocked && (
+          <div className="flex items-start gap-3 bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mb-6">
+            <Clock size={18} className="text-orange-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">
+                You're on a free trial
+                {typeof trialInfo?.daysRemaining === "number"
+                  ? ` — ${trialInfo.daysRemaining} day${trialInfo.daysRemaining === 1 ? "" : "s"} left`
+                  : ""}
+              </span>
+              . You can browse plans now, but purchasing is available once your trial ends.
+            </p>
+          </div>
+        )}
 
         {/* Loading state */}
         {loading ? (
@@ -107,12 +149,12 @@ export default function SelectTenure() {
               return (
                 <div
                   key={plan._id}
-                  className={`relative border rounded-2xl p-5 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer flex flex-col ${
-                    isBestseller
-                      ? "border-orange-300 bg-orange-50/30"
-                      : "border-gray-200"
-                  }`}
-                  onClick={() => handleSelect(plan)}
+                  className={`relative border rounded-2xl p-5 flex flex-col transition-all ${
+                    isTrialBlocked
+                      ? "cursor-default opacity-70"
+                      : "cursor-pointer hover:border-orange-400 hover:shadow-md"
+                  } ${isBestseller ? "border-orange-300 bg-orange-50/30" : "border-gray-200"}`}
+                  onClick={() => !isTrialBlocked && handleSelect(plan)}
                 >
                   {isBestseller && (
                     <div className="absolute -top-2 left-4 bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
@@ -146,9 +188,14 @@ export default function SelectTenure() {
                       e.stopPropagation();
                       handleSelect(plan);
                     }}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2.5 rounded-full transition-colors shadow-[0_4px_14px_rgba(249,115,22,0.35)] mt-auto"
+                    disabled={isTrialBlocked}
+                    className={`w-full text-sm font-semibold py-2.5 rounded-full transition-colors mt-auto ${
+                      isTrialBlocked
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-orange-500 hover:bg-orange-600 text-white shadow-[0_4px_14px_rgba(249,115,22,0.35)]"
+                    }`}
                   >
-                    Select Plan
+                    {isTrialBlocked ? "Available After Trial" : "Select Plan"}
                   </button>
                 </div>
               );
