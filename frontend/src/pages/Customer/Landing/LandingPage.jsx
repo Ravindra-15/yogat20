@@ -1,7 +1,7 @@
 // Yoga T20 - Landing Page
 // Final section order matching figma flow
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   captureReferralFromUrl,
   scrollToPricingOnReferral,
@@ -14,14 +14,18 @@ import OurStructureSection from "./sections/OurStructureSection";
 import WhatYouGetSection from "./sections/WhatYouGetSection";
 import PricingSection from "./sections/PricingSection";
 import HealingCTASection from "./sections/HealingCTASection";
+import FreeTrialCTASection from "./sections/FreeTrialCTASection";
 import ReviewsSection from "./sections/ReviewsSection";
 import ProgramsSection from "./sections/ProgramsSection";
 import FAQSection from "./sections/FAQSection";
 import CallbackSection from "./sections/CallbackSection";
 import ReferAndEarnSection from "./sections/ReferAndEarnSection";
 import WelcomePopup from "./components/WelcomePopup";
+import FreeTrialModal from "./components/FreeTrialModal";
 
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { isCustomerLoggedIn, buildLoginRedirect } from "../../../utils/customerAuthHelper";
+
 export default function LandingPage() {
   // 🔗 capture ?ref= referral code from the URL on landing,
   // then take referral visitors straight to the pricing section
@@ -31,6 +35,8 @@ export default function LandingPage() {
   }, []);
 
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // 📍 scroll to a section when arriving from the footer (state.scrollTo)
   useEffect(() => {
@@ -45,6 +51,30 @@ export default function LandingPage() {
     }
   }, [location.state]);
 
+  // ============================================
+  // 🆓 FREE TRIAL MODAL
+  // CTA → not logged in: send to login/signup, then land back here with
+  // ?openTrial=1 so the modal auto-opens (same "arrive with a param →
+  // auto-open UI" pattern used on the dashboard for ?openProgress=1).
+  // ============================================
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("openTrial") === "1") {
+      setTrialModalOpen(true);
+      searchParams.delete("openTrial");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleStartTrial = () => {
+    if (!isCustomerLoggedIn()) {
+      navigate(buildLoginRedirect("/?openTrial=1"));
+      return;
+    }
+    setTrialModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <CustomerNavbar />
@@ -52,6 +82,7 @@ export default function LandingPage() {
 
       <main className="flex-1 w-full">
         <HeroSection />
+        <FreeTrialCTASection onStartTrial={handleStartTrial} />
         <ConditionsSection />
         <OurStructureSection />
         <WhatYouGetSection />
@@ -63,6 +94,8 @@ export default function LandingPage() {
         <CallbackSection />
         <ReferAndEarnSection />
       </main>
+
+      <FreeTrialModal open={trialModalOpen} onClose={() => setTrialModalOpen(false)} />
 
       <CustomerFooter />
     </div>

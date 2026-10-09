@@ -260,6 +260,8 @@ export default function ProgramDashboard() {
   const [upcomingAppointments, setUpcomingAppointments] = useState([]); // plan-credit bookings (this program)
   const [allUpcoming, setAllUpcoming] = useState([]); // every upcoming appointment
   const [entitlement, setEntitlement] = useState(0);
+  // 🆓 Free trial countdown — set only when the active subscription is a trial
+  const [trialDaysLeft, setTrialDaysLeft] = useState(null);
   const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
 
   // 🎁 NEW per-card free-consult system
@@ -431,6 +433,7 @@ export default function ProgramDashboard() {
         const sub = res?.subscription || null;
         if (!mounted) return;
         setEntitlement(entitlementFromSubscription(sub));
+        setTrialDaysLeft(sub?.isTrial ? sub.daysUntilExpiry : null);
 
         // 🔔 show expiry popup ONCE per session (not on every refresh/visit)
         const sessionTag = (
@@ -452,6 +455,7 @@ export default function ProgramDashboard() {
             daysLeft: sub.daysUntilExpiry,
             endDate: sub.endDate,
             programName: sub.programName,
+            isTrial: !!sub.isTrial,
           });
           sessionStorage.setItem(popupKey, "1"); // mark shown for this session
           // open immediately only if no birthday popup is up
@@ -568,26 +572,33 @@ export default function ProgramDashboard() {
             </div>
 
             <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
-              {expiryInfo.daysLeft <= 0
-                ? "Your plan expires today"
-                : expiryInfo.daysLeft === 1
-                  ? "Your plan expires tomorrow"
-                  : `Your plan expires in ${expiryInfo.daysLeft} days`}
+              {expiryInfo.isTrial
+                ? expiryInfo.daysLeft <= 0
+                  ? "Your free trial ends today"
+                  : expiryInfo.daysLeft === 1
+                    ? "Your free trial ends tomorrow"
+                    : `Your free trial ends in ${expiryInfo.daysLeft} days`
+                : expiryInfo.daysLeft <= 0
+                  ? "Your plan expires today"
+                  : expiryInfo.daysLeft === 1
+                    ? "Your plan expires tomorrow"
+                    : `Your plan expires in ${expiryInfo.daysLeft} days`}
             </h3>
             <p className="text-sm text-gray-500 leading-relaxed mb-5">
-              Renew your {expiryInfo.programName} plan to keep your videos,
-              progress tracking, and free consultations going without a break.
+              {expiryInfo.isTrial
+                ? `Upgrade to a full ${expiryInfo.programName} plan to keep your videos, progress tracking, and free consultations going without a break.`
+                : `Renew your ${expiryInfo.programName} plan to keep your videos, progress tracking, and free consultations going without a break.`}
             </p>
 
             <button
               type="button"
               onClick={() => {
                 closeExpiryPopup();
-                navigate("/my-plans-and-billings");
+                navigate(expiryInfo.isTrial ? `/programs/${id}/tenure` : "/my-plans-and-billings");
               }}
               className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
             >
-              Renew Now
+              {expiryInfo.isTrial ? "Upgrade Now" : "Renew Now"}
             </button>
           </div>
         </div>
@@ -605,6 +616,34 @@ export default function ProgramDashboard() {
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
+          {/* ══════════════════════════════════════════════════ */}
+          {/* 🆓 FREE TRIAL COUNTDOWN                             */}
+          {/* ══════════════════════════════════════════════════ */}
+          {typeof trialDaysLeft === "number" && (
+            <div className="bg-orange-50 border border-orange-100 rounded-2xl px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+                  <Clock size={15} className="text-white" />
+                </div>
+                <p className="text-sm text-orange-800">
+                  <span className="font-bold">Free Trial</span> —{" "}
+                  {trialDaysLeft <= 0
+                    ? "ends today"
+                    : trialDaysLeft === 1
+                    ? "1 day left"
+                    : `${trialDaysLeft} days left`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/programs/${id}/tenure`)}
+                className="text-xs font-semibold text-orange-600 hover:underline flex-shrink-0"
+              >
+                Upgrade Now
+              </button>
+            </div>
+          )}
+
           {/* ══════════════════════════════════════════════════ */}
           {/* GREETING CARD + PROGRESS RING                      */}
           {/* ══════════════════════════════════════════════════ */}

@@ -8,6 +8,10 @@ const ProtectedProgramRoute = ({ children }) => {
   // ============================================
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  // 🆓 Once a trial has been used (approved, regardless of current
+  // status), a denied user gets sent to the upgrade page instead of the
+  // homepage — "hide dashboard access, force them to the tenure page".
+  const [hadTrial, setHadTrial] = useState(false);
 
   // ============================================
   // 🔐 TOKEN CHECK
@@ -50,6 +54,11 @@ const ProtectedProgramRoute = ({ children }) => {
         });
 
         setHasAccess(!!activeSubscription);
+        // Only relevant when access is being denied — did this user ever
+        // have a trial subscription (one per user, ever) for this program?
+        if (!activeSubscription) {
+          setHadTrial(subscriptions.some((sub) => sub.isTrial));
+        }
       } catch (err) {
         console.error(
           "ProtectedProgramRoute error:",
@@ -86,7 +95,7 @@ const ProtectedProgramRoute = ({ children }) => {
   // 🚫 ACCESS DENIED
   // ============================================
   if (!hasAccess) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={hadTrial ? "/programs/yogat20/tenure" : "/"} replace />;
   }
 
   // ============================================
