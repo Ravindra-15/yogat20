@@ -284,7 +284,9 @@ useEffect(() => {
       <Modal isOpen={open} onClose={() => setOpen(false)}>
         <div className="text-center px-2">
           <h2 className="text-2xl font-bold text-teal-800 mb-4">
-            Welcome to YogaT20
+            {user?.fullName || user?.nickName
+              ? `Hello, ${user.fullName || user.nickName}!`
+              : "Welcome to YogaT20"}
           </h2>
 
           {/* 👤 Avatar — clickable to upload */}

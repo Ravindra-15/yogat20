@@ -237,7 +237,7 @@ export default function ProgressReport() {
                       No progress data yet.
                     </p>
                     <p className="text-xs text-[#9CA3AF] mt-1">
-                      Start logging from the Add Progress page.
+                      Start logging from the My Health page.
                     </p>
                   </div>
                 ) : (

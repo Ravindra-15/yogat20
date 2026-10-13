@@ -148,7 +148,7 @@ const CustomerNavbar = () => {
   const links = isSubscribed
     ? [
         ...baseLinks,
-        { to: dashboardPath, label: "Add Progress", isAddProgress: true },
+        { to: dashboardPath, label: "My Health", isAddProgress: true },
       ]
     : baseLinks;
 
