@@ -24,7 +24,10 @@ import ConsultationCard from "./components/ConsultationCard";
 import Modal from "../../../components/common/Modal";
 
 import { getPublicDoctor } from "../../../services/customerDoctorService";
-import { createBooking } from "../../../services/customerAppointmentService";
+import {
+  createBooking,
+  createAppointmentPaypalOrder,
+} from "../../../services/customerAppointmentService";
 import {
   isCustomerLoggedIn,
   buildLoginRedirect,
@@ -79,6 +82,18 @@ const Checkout = () => {
       });
     }
   }, [navigate, location]);
+
+  // ============================================
+  // 🅿️ PAYPAL CANCELLED — buyer backed out on PayPal's page.
+  // Booking intent is untouched (still in sessionStorage), so they land
+  // right back here and can just hit Pay again.
+  // ============================================
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("paypalCancelled") === "1") {
+      toast("Payment cancelled — you can try again whenever you're ready.", { icon: "ℹ️" });
+      navigate(location.pathname, { replace: true }); // strip the query param
+    }
+  }, [location, navigate]);
 
   // ============================================
   // 📥 LOAD INTENT + DOCTOR
@@ -169,24 +184,51 @@ const Checkout = () => {
 
     try {
       setPaying(true);
-      const result = await createBooking({
+
+      // 🎁 Free credit/consult-card — no real payment needed. Confirmed via
+      // either our own client-side check, or (if that changed since page
+      // load) the backend telling us so when we tried to start a PayPal order.
+      const completeFreeBooking = async () => {
+        const result = await createBooking({
+          doctorId: intent.doctorId,
+          scheduledAt: intent.scheduledAt,
+          notes: problem || undefined,
+          platform: PLATFORM,
+        });
+        if (!isMountedRef.current) return;
+        sessionStorage.removeItem("bookingIntent");
+        sessionStorage.removeItem("bookingProblem");
+        toast.success("Appointment confirmed!");
+        navigate(`/booking/confirmation/${result.appointment._id}`, { replace: true });
+      };
+
+      if (isFreeBooking) {
+        await completeFreeBooking();
+        return;
+      }
+
+      // 💳 Real payment — start PayPal checkout and redirect the browser there.
+      // Problem text is already saved in sessionStorage (bookingProblem), so
+      // it survives the round trip to PayPal and back.
+      const origin = window.location.origin;
+      const result = await createAppointmentPaypalOrder({
         doctorId: intent.doctorId,
         scheduledAt: intent.scheduledAt,
-        notes: problem || undefined, // send problem text as notes (optional)
-        platform: PLATFORM, // tag booking to current program
+        platform: PLATFORM,
+        returnUrl: `${origin}/checkout/paypal/return`,
+        cancelUrl: `${origin}/checkout?paypalCancelled=1`,
       });
 
       if (!isMountedRef.current) return;
 
-      // 🧹 Clear intent — booking succeeded
-      sessionStorage.removeItem("bookingIntent");
-      sessionStorage.removeItem("bookingProblem"); // clear saved problem after successful booking
-      toast.success("Appointment confirmed!");
+      if (result.freeBooking) {
+        // Became eligible between page load and click (rare) — complete it
+        // as a free booking right away instead of making them click again.
+        await completeFreeBooking();
+        return;
+      }
 
-      // 📍 Navigate to confirmation page
-      navigate(`/booking/confirmation/${result.appointment._id}`, {
-        replace: true,
-      });
+      window.location.href = result.approveUrl;
     } catch (err) {
       if (!isMountedRef.current) return;
       const msg = err?.response?.data?.message || "Payment failed";
@@ -395,14 +437,21 @@ const Checkout = () => {
                 {paying ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />
-                    {isFreeBooking ? "Confirming…" : "Processing payment…"}
+                    {isFreeBooking ? "Confirming…" : "Redirecting to PayPal…"}
                   </>
                 ) : isFreeBooking ? (
                   usingPlanConsult ? "Book Free Consultation" : "Confirm Free Booking"
                 ) : (
-                  `Pay $${BOOKING_FEE}`
+                  `Pay $${BOOKING_FEE} with PayPal`
                 )}
               </button>
+
+              {!isFreeBooking && (
+                <p className="text-[11px] text-gray-400 text-center">
+                  You'll be redirected to PayPal to complete payment securely,
+                  then brought back here automatically.
+                </p>
+              )}
 
               <p className="text-[11px] text-gray-400 text-center">
                 By proceeding, you agree to Zealtho's Terms of Service and
