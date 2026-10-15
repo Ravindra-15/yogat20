@@ -81,10 +81,11 @@ const response = await authApi.post("/customer/appointments", {
 // Returns either { approveUrl } (redirect the browser there) or
 // { freeBooking: true } (no payment needed — caller should use createBooking()).
 // ============================================
-export const createAppointmentPaypalOrder = async ({ doctorId, scheduledAt, platform, returnUrl, cancelUrl }) => {
+export const createAppointmentPaypalOrder = async ({ doctorId, scheduledAt, notes, platform, returnUrl, cancelUrl }) => {
   const response = await authApi.post("/customer/appointments/paypal/create-order", {
     doctorId,
     scheduledAt,
+    notes,
     platform,
     timezone: getViewerTimezone(),
     returnUrl,
@@ -97,15 +98,14 @@ export const createAppointmentPaypalOrder = async ({ doctorId, scheduledAt, plat
 // 🅿️ PAYPAL — FINISH CHECKOUT (auth)
 // Called once the buyer lands back on our site after approving on PayPal.
 // ============================================
-export const captureAppointmentPaypalOrder = async ({ orderId, doctorId, scheduledAt, notes, platform }) => {
-  const response = await authApi.post("/customer/appointments/paypal/capture-order", {
-    orderId,
-    doctorId,
-    scheduledAt,
-    notes,
-    platform,
-    timezone: getViewerTimezone(),
-  });
+// Only the orderId is needed — booking details are stored server-side.
+// Safe to call repeatedly (refresh / retry never double-charges or double-books).
+export const captureAppointmentPaypalOrder = async ({ orderId }) => {
+  const response = await authApi.post(
+    "/customer/appointments/paypal/capture-order",
+    { orderId },
+    { timeout: 45000 } // PayPal capture can be slow — don't give up early
+  );
   return response.data.data;
 };
 

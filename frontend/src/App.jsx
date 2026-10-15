@@ -37,6 +37,7 @@ import BodyProfileWizard from "./pages/Customer/BodyProfile/BodyProfileWizard";
 
 import SelectTenure from "./pages/Customer/Programs/SelectTenure";
 import ProgramCheckout from "./pages/Customer/Programs/ProgramCheckout";
+import ProgramPaypalReturn from "./pages/Customer/Programs/ProgramPaypalReturn";
 import ProgramSuccess from "./pages/Customer/Programs/ProgramSuccess";
 import ProgramDashboard from "./pages/Customer/Programs/ProgramDashboard";
 import ProtectedProgramRoute from "./components/common/ProtectedProgramRoute";
@@ -217,6 +218,7 @@ function App() {
         />
         <Route path="/programs/:id/tenure" element={<SelectTenure />} />
         <Route path="/programs/:id/checkout" element={<ProgramCheckout />} />
+        <Route path="/programs/:id/paypal/return" element={<ProgramPaypalReturn />} />
         <Route path="/programs/:id/success" element={<ProgramSuccess />} />
         <Route
           path="/programs/:id/dashboard"

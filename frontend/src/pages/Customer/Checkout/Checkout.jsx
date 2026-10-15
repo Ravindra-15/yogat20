@@ -28,6 +28,7 @@ import {
   createBooking,
   createAppointmentPaypalOrder,
 } from "../../../services/customerAppointmentService";
+import { getPaymentErrorMessage } from "../../../utils/paymentErrors";
 import {
   isCustomerLoggedIn,
   buildLoginRedirect,
@@ -36,6 +37,7 @@ import {
 import { fetchMyProfile } from "../../../services/customerProfileService";
 import { fetchMyFreeConsultCards } from "../../../services/customerFreeConsultService";
 import useMyBodyProfile from "../../../hooks/useMyBodyProfile";
+import { useCurrency } from "../../../hooks/useCurrency";
 
 const BOOKING_FEE = 20;
 const PROBLEM_MAX = 200; // max characters allowed for problem description
@@ -58,6 +60,13 @@ const Checkout = () => {
   // (backend consumes planFreeConsults first, then freeAppointmentCredits)
   const isFreeBooking = planConsults > 0 || freeCredits > 0;
   const usingPlanConsult = planConsults > 0; // plan benefit takes priority
+  const fee = isFreeBooking ? 0 : BOOKING_FEE; // USD
+
+  // 💱 Show the fee in the customer's own currency (from their profile
+  // country). Display only — PayPal still charges the USD amount.
+  const { convert, currency, rates, ready: currencyReady } = useCurrency();
+  const showsLocalCurrency =
+    !!currency && currency !== "USD" && Number.isFinite(rates?.[currency]);
   // body profile completion status — decides which button to show
   const { isComplete: bodyProfileComplete, loading: bodyProfileLoading } =
     useMyBodyProfile();
@@ -181,15 +190,28 @@ const Checkout = () => {
   // ============================================
   const handlePay = async () => {
     if (paying || !intent) return;
+    let redirecting = false;
 
     try {
       setPaying(true);
 
-      // 🎁 Free credit/consult-card — no real payment needed. Confirmed via
-      // either our own client-side check, or (if that changed since page
-      // load) the backend telling us so when we tried to start a PayPal order.
-      const completeFreeBooking = async () => {
-        const result = await createBooking({
+      // The server decides free vs paid (it re-checks credits/consult cards
+      // and that the slot is still open) — the client never guesses.
+      const origin = window.location.origin;
+      const result = await createAppointmentPaypalOrder({
+        doctorId: intent.doctorId,
+        scheduledAt: intent.scheduledAt,
+        notes: problem || undefined,
+        platform: PLATFORM,
+        returnUrl: `${origin}/checkout/paypal/return`,
+        cancelUrl: `${origin}/checkout?paypalCancelled=1`,
+      });
+
+      if (!isMountedRef.current) return;
+
+      // 🎁 Free credit / consult card — confirm without any payment.
+      if (result.freeBooking) {
+        const booked = await createBooking({
           doctorId: intent.doctorId,
           scheduledAt: intent.scheduledAt,
           notes: problem || undefined,
@@ -199,42 +221,20 @@ const Checkout = () => {
         sessionStorage.removeItem("bookingIntent");
         sessionStorage.removeItem("bookingProblem");
         toast.success("Appointment confirmed!");
-        navigate(`/booking/confirmation/${result.appointment._id}`, { replace: true });
-      };
-
-      if (isFreeBooking) {
-        await completeFreeBooking();
+        navigate(`/booking/confirmation/${booked.appointment._id}`, { replace: true });
         return;
       }
 
-      // 💳 Real payment — start PayPal checkout and redirect the browser there.
-      // Problem text is already saved in sessionStorage (bookingProblem), so
-      // it survives the round trip to PayPal and back.
-      const origin = window.location.origin;
-      const result = await createAppointmentPaypalOrder({
-        doctorId: intent.doctorId,
-        scheduledAt: intent.scheduledAt,
-        platform: PLATFORM,
-        returnUrl: `${origin}/checkout/paypal/return`,
-        cancelUrl: `${origin}/checkout?paypalCancelled=1`,
-      });
-
-      if (!isMountedRef.current) return;
-
-      if (result.freeBooking) {
-        // Became eligible between page load and click (rare) — complete it
-        // as a free booking right away instead of making them click again.
-        await completeFreeBooking();
-        return;
-      }
-
+      // 💳 Real payment — off to PayPal. Keep the button disabled while the
+      // browser navigates away so a second click can't start another order.
+      redirecting = true;
       window.location.href = result.approveUrl;
     } catch (err) {
       if (!isMountedRef.current) return;
-      const msg = err?.response?.data?.message || "Payment failed";
-      toast.error(msg);
+      const msg = getPaymentErrorMessage(err, "Couldn't start payment. Please try again.");
+      toast.error(err?.response ? msg : `${msg} You haven't been charged.`);
     } finally {
-      if (isMountedRef.current) setPaying(false);
+      if (isMountedRef.current && !redirecting) setPaying(false);
     }
   };
 
@@ -271,7 +271,8 @@ const Checkout = () => {
           {/* ============================================ */}
           {/* 📋 CHECKOUT BODY                              */}
           {/* ============================================ */}
-          {loading ? (
+          {loading || !currencyReady ? (
+            // also wait for the currency, so the fee doesn't flash $20 first
             <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse h-72" />
           ) : error ? (
             <div className="bg-white rounded-2xl border border-gray-100 px-6 py-12 text-center">
@@ -289,7 +290,8 @@ const Checkout = () => {
               <ConsultationCard
                 doctor={doctor}
                 scheduledAt={intent?.scheduledAt}
-                fee={isFreeBooking ? 0 : BOOKING_FEE}
+                fee={fee}
+                feeLabel={convert(fee)}
                 showTotals
               />
 
@@ -442,9 +444,19 @@ const Checkout = () => {
                 ) : isFreeBooking ? (
                   usingPlanConsult ? "Book Free Consultation" : "Confirm Free Booking"
                 ) : (
-                  `Pay $${BOOKING_FEE} with PayPal`
+                  `Pay ${convert(BOOKING_FEE)} with PayPal`
                 )}
               </button>
+
+              {/* 💱 Local-currency customers: be upfront that PayPal bills in USD */}
+              {!isFreeBooking && showsLocalCurrency && (
+                <p className="text-xs text-gray-500 text-center leading-relaxed">
+                  PayPal will charge{" "}
+                  <span className="font-semibold">${BOOKING_FEE.toFixed(2)} USD</span>{" "}
+                  (≈ {convert(BOOKING_FEE)}). Your bank or PayPal may apply its
+                  own conversion rate.
+                </p>
+              )}
 
               {!isFreeBooking && (
                 <p className="text-[11px] text-gray-400 text-center">

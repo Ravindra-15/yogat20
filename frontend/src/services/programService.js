@@ -40,6 +40,42 @@ export const subscribeToProgram = async (
 };
 
 // ============================================
+// 🅿️ PAYPAL — START PLAN CHECKOUT
+// Returns { orderId, approveUrl, amount, currency } — redirect to approveUrl.
+// The price is always re-calculated on the server, never taken from here.
+// ============================================
+export const createProgramPaypalOrder = async ({ programId, tenure, weeks, returnUrl, cancelUrl }) => {
+  const token = getToken();
+  const response = await axios.post(
+    `${API_BASE}/customer/programs/paypal/create-order`,
+    { programId, tenure, weeks, returnUrl, cancelUrl },
+    {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      timeout: 30000,
+    }
+  );
+  return response.data.data;
+};
+
+// ============================================
+// 🅿️ PAYPAL — FINISH PLAN CHECKOUT
+// Only needs the orderId — plan details are stored server-side.
+// Safe to call repeatedly (never double-charges or double-subscribes).
+// ============================================
+export const captureProgramPaypalOrder = async ({ orderId }) => {
+  const token = getToken();
+  const response = await axios.post(
+    `${API_BASE}/customer/programs/paypal/capture-order`,
+    { orderId },
+    {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      timeout: 45000, // PayPal capture can be slow — don't give up early
+    }
+  );
+  return response.data;
+};
+
+// ============================================
 // 📋 GET MY SUBSCRIPTIONS
 // ============================================
 export const getMySubscriptions =
