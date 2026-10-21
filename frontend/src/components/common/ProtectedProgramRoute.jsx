@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useParams, useLocation } from "react-router-dom";
 
-import { getMySubscriptions } from "../../services/programService";
+import { hasActiveProgramSubscription } from "../../utils/subscriptionCheck";
+import { PROGRAM_ID } from "../../utils/programConfig";
 const ProtectedProgramRoute = ({ children }) => {
+  // 🔒 this app only serves its OWN program (e.g. no YogaT20 videos inside Diabmukt)
+  const { id } = useParams();
+  const location = useLocation();
+
   // ============================================
   // 🔄 STATE
   // ============================================
@@ -38,22 +43,8 @@ const ProtectedProgramRoute = ({ children }) => {
           return;
         }
 
-        // 📦 Fetch subscriptions
-        const data = await getMySubscriptions();
-
-        const subscriptions = data?.subscriptions || [];
-
-        // ✅ Check active + not expired
-        const activeSubscription = subscriptions.find((sub) => {
-          const isActive = sub.status === "active";
-
-          const expiryDate = new Date(sub.endDate);
-          const now = new Date();
-
-          return isActive && expiryDate > now;
-        });
-
-        setHasAccess(!!activeSubscription);
+        // ✅ Active, unexpired subscription to THIS program only
+        setHasAccess(await hasActiveProgramSubscription());
         // Only relevant when access is being denied — did this user ever
         // have a trial subscription (one per user, ever) for this program?
         if (!activeSubscription) {
@@ -73,6 +64,16 @@ const ProtectedProgramRoute = ({ children }) => {
 
     verifySubscription();
   }, [isAuthenticated]);
+  // 🔀 Another program's URL opened in this app → same page for this app's program
+  if (id && id !== PROGRAM_ID) {
+    return (
+      <Navigate
+        to={location.pathname.replace(`/programs/${id}`, `/programs/${PROGRAM_ID}`) + location.search}
+        replace
+      />
+    );
+  }
+
 
   // ============================================
   // ⏳ LOADER
