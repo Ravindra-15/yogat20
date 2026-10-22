@@ -26,6 +26,7 @@ import {
   markAppointmentComplete,
   markAppointmentNoShow,
 } from "../../../../services/doctorAppointmentService";
+import PatientReports from "./PatientReports";
 
 // ============================================
 // 🛠️ HELPERS
@@ -382,6 +383,9 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
             Join
           </a>
         )}
+
+        {/* 📄 PATIENT REPORTS */}
+        <PatientReports appointment={appointment} />
 
         {/* ✅ COMPLETE + ❌ CANCEL BUTTONS */}
         <div className="mt-3 flex flex-wrap gap-2">
