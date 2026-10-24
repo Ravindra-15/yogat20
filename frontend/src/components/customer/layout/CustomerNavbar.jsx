@@ -12,6 +12,7 @@ import AuthContext from "../../../context/AuthContext";
 import { hasActiveProgramSubscription } from "../../../utils/subscriptionCheck";
 import { PROGRAM_ID } from "../../../utils/programConfig";
 import { fetchMyNotifications } from "../../../services/customerNotificationService";
+import { listMyAppointments } from "../../../services/customerAppointmentService";
 // ============================================
 // 🔗 NAV LINK CONFIGS
 // ============================================
@@ -105,6 +106,38 @@ const CustomerNavbar = () => {
       mounted = false;
     };
   }, [isLoggedIn, profileCompleted, location.pathname]);
+
+  // 📅 upcoming appointments count for the "My Appointments" menu badge
+  const [upcomingCount, setUpcomingCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!isLoggedIn || !profileCompleted) {
+      setUpcomingCount(0);
+      return;
+    }
+    (async () => {
+      try {
+        const data = await listMyAppointments({ bucket: "upcoming", limit: 1 });
+        if (mounted) setUpcomingCount(data?.pagination?.total || 0);
+      } catch {
+        // soft fail — menu just shows no badge
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [isLoggedIn, profileCompleted, location.pathname]);
+
+  const appointmentsBadge = (link) =>
+    link.to === "/my-appointments" && upcomingCount > 0 ? (
+      <span
+        className="ml-1.5 inline-flex min-w-[18px] h-[18px] px-1 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none align-middle"
+        aria-label={`${upcomingCount} upcoming appointments`}
+      >
+        {upcomingCount > 9 ? "9+" : upcomingCount}
+      </span>
+    ) : null;
 
   // Home click — subscribed → dashboard; logged-in unsubscribed → toast; else landing
   const handleHomeClick = (e) => {
@@ -299,6 +332,7 @@ const CustomerNavbar = () => {
                     }
                   >
                     {link.label}
+                    {appointmentsBadge(link)}
                   </NavLink>
                 ),
               )}
@@ -429,6 +463,7 @@ const CustomerNavbar = () => {
                     className="px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-50"
                   >
                     {link.label}
+                    {appointmentsBadge(link)}
                   </NavLink>
                 ),
               )}
