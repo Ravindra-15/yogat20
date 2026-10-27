@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { getProgramPlans } from "../../../services/programPlanService";
+import { getPurchaseRules } from "../../../services/programService";
 import { useCurrency } from "../../../hooks/useCurrency";
 import { fetchTrialStatus } from "../../../services/customerFreeTrialService";
 
@@ -17,12 +18,16 @@ const programNames = {
   slimfitter: "Slimfitter",
 };
 
+// 📏 plan length in months (0 = unknown → never hidden)
+const planMonths = (p) => Number(p?.durationMonths) || parseInt(p?.planName, 10) || 0;
+
 export default function SelectTenure() {
   const { id } = useParams();
   const navigate = useNavigate();
   const programName = programNames[id] || id;
 
   const [plans, setPlans] = useState([]);
+  const [isNewSubscriber, setIsNewSubscriber] = useState(false);
   const [loading, setLoading] = useState(true);
   const { convert } = useCurrency();
 
@@ -61,10 +66,17 @@ export default function SelectTenure() {
       setLoading(true);
       try {
         // Subscription flow shows ALL active plans (not just landing-visible)
-        const fetched = await getProgramPlans(id);
+        const [fetched, rules] = await Promise.all([
+          getProgramPlans(id),
+          getPurchaseRules(id).catch(() => null),
+        ]);
         // const fetched = await getProgramPlans(id, { landingOnly: true });
         if (!mounted) return;
-        setPlans(fetched);
+        // 📏 new subscribers start with a plan of at least 3 months
+        const isNew = !rules?.isExtension;
+        setIsNewSubscriber(isNew);
+        const minMonths = rules?.minMonthsForNew || 3;
+        setPlans(isNew ? (fetched || []).filter((p) => !planMonths(p) || planMonths(p) >= minMonths) : fetched);
       } catch (err) {
         console.error("Failed to load plans:", err);
         if (mounted) setPlans([]);
@@ -129,7 +141,9 @@ export default function SelectTenure() {
         ) : plans.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-sm text-gray-500 mb-4">
-              No plans available right now. Please check back soon.
+              {isNewSubscriber
+                ? "New subscribers start with a plan of 3 months or more — none is available right now."
+                : "No plans available right now. Please check back soon."}
             </p>
             <button
               onClick={() => navigate(`/programs/${id}`)}

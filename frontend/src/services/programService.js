@@ -132,3 +132,29 @@ export const cancelSubscription =
 
     return response.data;
   };
+
+// ============================================
+// 💲 LIVE PRICE QUOTE — the amount PayPal will charge right now
+// ============================================
+export const getSubscriptionQuote = async ({ programId, tenure, weeks }) => {
+  const token = getToken();
+  const response = await axios.get(`${API_BASE}/customer/programs/quote`, {
+    params: { programId, tenure, weeks },
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 15000,
+  });
+  return response.data.data;
+};
+
+// ============================================
+// 📏 PURCHASE RULES — new subscriber minimum / extension steps
+// ============================================
+export const getPurchaseRules = async (programId) => {
+  const token = getToken();
+  const response = await axios.get(`${API_BASE}/customer/programs/purchase-rules`, {
+    params: { programId },
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 15000,
+  });
+  return response.data.data;
+};

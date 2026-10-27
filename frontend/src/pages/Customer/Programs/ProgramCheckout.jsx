@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { X, Shield, Calendar, Lock, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { createProgramPaypalOrder } from "../../../services/programService";
+import { createProgramPaypalOrder, getSubscriptionQuote } from "../../../services/programService";
 import { useCurrency } from "../../../hooks/useCurrency";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { fetchMyReferrer } from "../../../services/customerReferralService";
@@ -110,16 +110,54 @@ export default function ProgramCheckout() {
     };
   }, []);
 
+  // ============================================
+  // 💲 LIVE PRICE — re-checked with the server so a plan edited by the
+  // admin never shows an old price here (PayPal charges this amount).
+  // ============================================
+  const [livePrice, setLivePrice] = useState(null);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteLoading, setQuoteLoading] = useState(!!plan);
+
+  useEffect(() => {
+    if (!plan) return;
+    let active = true;
+    setQuoteLoading(true);
+    getSubscriptionQuote({
+      programId: id,
+      tenure: plan.tenure,
+      weeks: plan.pricingType === "weekly" ? plan.weeks : undefined,
+    })
+      .then((q) => {
+        if (!active) return;
+        const amount = Number(q?.amount);
+        if (!Number.isFinite(amount)) throw new Error("bad quote");
+        setLivePrice(amount);
+        setQuoteError("");
+        if (Math.abs(amount - (Number(plan.price) || 0)) > 0.009) {
+          toast("This plan's price was just updated — showing the latest price.", { icon: "ℹ️" });
+        }
+      })
+      .catch((err) => {
+        if (active) setQuoteError(err?.response?.data?.message || "Couldn't confirm the latest price. Please try again.");
+      })
+      .finally(() => {
+        if (active) setQuoteLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, plan]);
+
   const isWeekly = plan?.pricingType === "weekly";
   const tenure = plan?.tenure || (plan?.weeks ? `${plan.weeks} Weeks` : "");
-  const price = Number(plan?.price) || 0;
+  const price = livePrice != null ? livePrice : Number(plan?.price) || 0;
   const programName = plan?.programName || id;
 
   // ============================================
   // 💳 PAY WITH PAYPAL — redirect to PayPal's secure page
   // ============================================
   const payWithPaypal = async () => {
-    if (loading || !plan) return;
+    if (loading || !plan || quoteLoading || quoteError) return;
     let redirecting = false;
 
     try {
@@ -264,7 +302,7 @@ export default function ProgramCheckout() {
 
             <button
               onClick={payWithPaypal}
-              disabled={loading}
+              disabled={loading || quoteLoading || !!quoteError}
               className={`w-full text-white font-bold py-4 rounded-full transition-all inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${THEME.button}`}
             >
               {loading ? (
@@ -276,6 +314,19 @@ export default function ProgramCheckout() {
                 `Pay ${convert(price)} with PayPal`
               )}
             </button>
+
+            {quoteError && (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-center">
+                <p className="text-xs text-red-700">{quoteError}</p>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/programs/${id}/tenure`)}
+                  className="mt-1 text-xs font-semibold text-red-700 underline"
+                >
+                  Choose a plan again
+                </button>
+              </div>
+            )}
 
             {currency && currency !== "USD" && (
               <p className="text-xs text-gray-500 text-center mt-3 leading-relaxed">
