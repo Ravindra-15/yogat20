@@ -73,7 +73,7 @@ const Navbar = () => {
         <div className="flex items-center gap-3">
           <Link to="/login">
   <button className="bg-orange-500 text-white px-4 md:px-5 py-2 rounded-full text-xs md:text-sm font-medium whitespace-nowrap">
-    Join now
+    Login
   </button>
 </Link>
           {/* Mobile hamburger */}
@@ -148,7 +148,7 @@ const Navbar = () => {
     ) : (
       <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
       <button className="bg-orange-500 text-white px-5 py-2 rounded-full text-sm font-medium inline-flex items-center justify-center">
-          Join now
+          Login
         </button>
       </Link>
     )}
