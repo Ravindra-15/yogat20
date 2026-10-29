@@ -50,12 +50,6 @@ const OtpVerification = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  useEffect(() => {
-    if (otp.join("").length === 3 && !verifyingRef.current) {
-      handleVerify();
-    }
-    // eslint-disable-next-line
-  }, [otp]);
 
   const handleChange = (value, index) => {
     if (!/^\d?$/.test(value)) return;
@@ -70,6 +64,12 @@ const OtpVerification = () => {
   };
 
   const handleKeyDown = (e, index) => {
+    // ⏎ Enter verifies — the code is only checked on an explicit action
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleVerify();
+      return;
+    }
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       document.getElementById(`otp-${index - 1}`)?.focus();
     }
