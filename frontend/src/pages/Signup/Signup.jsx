@@ -170,7 +170,7 @@ const Signup = () => {
       setLoading(true);
 
       const { ref, refProgram } = getStoredReferral();
-      const { data } = await googleAuth({ accessToken, ref, refProgram });
+      const { data } = await googleAuth({ accessToken, ref, refProgram, mode: "signup" });
 
       clearStoredReferral();
       login(data.data.token, true);
@@ -209,6 +209,12 @@ const Signup = () => {
         }
       }, 300);
     } catch (err) {
+      // 🙋 Google account already registered → point them to Login
+      if (err?.response?.status === 409) {
+        toast(err.response.data?.message || "You already have an account. Please log in.", { icon: "👋" });
+        navigate(nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login");
+        return;
+      }
       const message = err?.response?.data?.message || "Google sign-in failed";
       toast.error(message);
     } finally {
