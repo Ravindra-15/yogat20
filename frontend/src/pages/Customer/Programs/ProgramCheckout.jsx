@@ -13,6 +13,7 @@ import { useCurrency } from "../../../hooks/useCurrency";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { fetchMyReferrer } from "../../../services/customerReferralService";
 import { getPaymentErrorMessage } from "../../../utils/paymentErrors";
+import { useProfileGate } from "../../../hooks/useProfileGate";
 
 // THEME-START
 const THEME = {
@@ -45,6 +46,7 @@ export default function ProgramCheckout() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { requireCompleteProfile, profileGateModal } = useProfileGate();
   const { convert, currency } = useCurrency();
 
   // From the plan-selection page, or (after coming back from PayPal) from
@@ -162,6 +164,10 @@ export default function ProgramCheckout() {
 
     try {
       setLoading(true);
+
+      // 👤 phone + location needed before a plan — ask first if missing
+      if (!(await requireCompleteProfile(`/programs/${id}/checkout`))) return;
+
       const origin = window.location.origin;
       const result = await createProgramPaypalOrder({
         programId: id,
@@ -352,6 +358,8 @@ export default function ProgramCheckout() {
           </div>
         </div>
       </div>
+
+      {profileGateModal}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { fetchTrialStatus, requestFreeTrial } from "../../../../services/customerFreeTrialService";
+import { useProfileGate } from "../../../../hooks/useProfileGate";
 
 const BENEFITS = [
   "Full YogaT20 dashboard access for 14 days",
@@ -23,6 +24,7 @@ export default function FreeTrialModal({ open, onClose }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const { requireCompleteProfile, profileGateModal } = useProfileGate();
 
   useEffect(() => {
     if (!open) return;
@@ -49,6 +51,10 @@ export default function FreeTrialModal({ open, onClose }) {
     if (submitting) return;
     try {
       setSubmitting(true);
+
+      // 👤 phone + location needed before a trial — ask first if missing
+      if (!(await requireCompleteProfile(window.location.pathname))) return;
+
       await requestFreeTrial();
       toast.success("Your free trial request has been sent for approval!");
       setStatus({ state: "pending" });
@@ -192,6 +198,7 @@ export default function FreeTrialModal({ open, onClose }) {
         <p className="text-sm text-gray-500 mb-5">Try YogaT20, on us.</p>
 
         {renderBody()}
+        {profileGateModal}
       </div>
     </div>
   );
