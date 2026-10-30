@@ -42,10 +42,10 @@ const formatTime = (iso) => {
   });
 };
 
-const maskPhone = (phone) => {
+const maskPhone = (phone, dialCode = "+91") => {
   if (!phone || phone.length < 4) return phone || "—";
 
-  return `+91 ${"*".repeat(phone.length - 2)}${phone.slice(-2)}`;
+  return `${dialCode} ${"*".repeat(phone.length - 2)}${phone.slice(-2)}`;
 };
 
 // 🔤 Avatar initials
@@ -78,6 +78,7 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
     user?.nickName || user?.fullName || patientName || "Patient";
 
   const phone = user?.phone || "";
+  const dialCode = user?.countryCode || "+91";
 
   const [linkInput, setLinkInput] = useState(meetingLink || "");
   const [savingLink, setSavingLink] = useState(false);
@@ -228,7 +229,7 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
 
           <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
             <span aria-hidden>📞</span>
-            <span>{maskPhone(phone)}</span>
+            <span>{maskPhone(phone, dialCode)}</span>
           </p>
         </div>
       </div>
