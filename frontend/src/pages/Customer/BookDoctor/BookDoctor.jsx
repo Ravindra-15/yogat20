@@ -192,7 +192,9 @@ useEffect(() => {
       sessionStorage.setItem("welcomeShown", "true");
     }
 
-    // Load user for the welcome modal avatar
+    // Load user for the welcome modal avatar (logged-in only — no token, no call)
+    if (!(localStorage.getItem("token") || sessionStorage.getItem("token"))) return;
+
     (async () => {
       try {
         const data = await fetchMyProfile();
@@ -206,7 +208,15 @@ useEffect(() => {
   // ============================================
   // 📸 PHOTO HANDLERS
   // ============================================
+  // 🔒 Photo upload needs an account — logged-out visitors go to Signup instead
+  const isLoggedIn = !!(localStorage.getItem("token") || sessionStorage.getItem("token"));
+
   const handlePhotoClick = () => {
+    if (!isLoggedIn) {
+      setOpen(false);
+      navigate(`/signup?next=${encodeURIComponent("/book-doctor")}`);
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -323,7 +333,7 @@ useEffect(() => {
                 onClick={handlePhotoClick}
                 className="mt-2 text-sm text-orange-500 hover:underline font-medium"
               >
-                {uploadingPhoto ? "Uploading…" : "Upload your pic"}
+                {uploadingPhoto ? "Uploading…" : isLoggedIn ? "Upload your pic" : "Sign up to upload your pic"}
               </button>
             )}
 
