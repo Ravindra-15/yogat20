@@ -174,7 +174,7 @@ export default function MyPlansAndBillings() {
                 {(!subscription.isActive ||
                   (subscription.daysUntilExpiry <= 7 && !pendingRenewal)) && (
                   <button
-                    onClick={() => navigate(`/programs/${PROGRAM_ID}/tenure`)}
+                    onClick={() => navigate(`/programs/${PROGRAM_ID}/tenure`, { state: { canGoBack: true } })}
                     className="inline-flex items-center justify-center gap-2 border border-orange-500 text-orange-500 hover:bg-[#F5F7FF] text-sm font-semibold px-5 py-2.5 rounded-full transition-colors"
                   >
                     <RefreshCw size={15} />

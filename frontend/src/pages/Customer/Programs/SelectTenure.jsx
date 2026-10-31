@@ -2,9 +2,9 @@
 // Plan picker between landing PricingSection and ProgramCheckout
 // Plans fetched dynamically from API (admin-configured pricing)
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { getProgramPlans } from "../../../services/programPlanService";
 import { getPurchaseRules } from "../../../services/programService";
@@ -24,6 +24,7 @@ const planMonths = (p) => Number(p?.durationMonths) || parseInt(p?.planName, 10)
 export default function SelectTenure() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const programName = programNames[id] || id;
 
   const [plans, setPlans] = useState([]);
@@ -90,6 +91,14 @@ export default function SelectTenure() {
     };
   }, [id]);
 
+  // ⬅️ Back: pages that link here pass `canGoBack`, so the previous history entry
+  // is a real page to return to. Everyone else goes to the landing page — after
+  // sign-up or a failed payment the previous entry is a profile step or PayPal.
+  const handleBack = () => {
+    if (location.state?.canGoBack) navigate(-1);
+    else navigate("/", { replace: true });
+  };
+
   const handleSelect = (plan) => {
     if (isTrialBlocked) return; // defensive — button is already hidden in this state
     navigate(`/programs/${id}/checkout`, {
@@ -104,7 +113,17 @@ export default function SelectTenure() {
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-900/80 flex items-center justify-center px-4 py-12 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg px-8 py-10">
+      <div className="relative bg-white rounded-3xl shadow-xl w-full max-w-lg px-8 py-10">
+        <button
+          type="button"
+          onClick={handleBack}
+          aria-label="Go back"
+          title="Back"
+          className="absolute top-2 left-2 sm:top-4 sm:left-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+        >
+          <ArrowLeft size={20} />
+        </button>
+
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
             Select your Tenure

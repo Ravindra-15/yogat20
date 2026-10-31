@@ -594,7 +594,7 @@ export default function ProgramDashboard() {
               type="button"
               onClick={() => {
                 closeExpiryPopup();
-                navigate(expiryInfo.isTrial ? `/programs/${id}/tenure` : "/my-plans-and-billings");
+                navigate(expiryInfo.isTrial ? `/programs/${id}/tenure` : "/my-plans-and-billings", { state: { canGoBack: true } });
               }}
               className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors"
             >
@@ -636,7 +636,7 @@ export default function ProgramDashboard() {
               </div>
               <button
                 type="button"
-                onClick={() => navigate(`/programs/${id}/tenure`)}
+                onClick={() => navigate(`/programs/${id}/tenure`, { state: { canGoBack: true } })}
                 className="text-xs font-semibold text-orange-600 hover:underline flex-shrink-0"
               >
                 Upgrade Now
