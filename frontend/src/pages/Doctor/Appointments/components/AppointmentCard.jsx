@@ -27,6 +27,7 @@ import {
   markAppointmentNoShow,
 } from "../../../../services/doctorAppointmentService";
 import PatientReports from "./PatientReports";
+import CancelReasonModal from "./CancelReasonModal";
 
 // ============================================
 // 🛠️ HELPERS
