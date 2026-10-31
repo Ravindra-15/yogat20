@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useParams, useLocation } from "react-router-dom";
 
-import { hasActiveProgramSubscription } from "../../utils/subscriptionCheck";
+import { hasActiveProgramSubscription, hasUsedProgramTrial } from "../../utils/subscriptionCheck";
 import { PROGRAM_ID } from "../../utils/programConfig";
 const ProtectedProgramRoute = ({ children }) => {
   // 🔒 this app only serves its OWN program (e.g. no YogaT20 videos inside Diabmukt)
@@ -44,11 +44,12 @@ const ProtectedProgramRoute = ({ children }) => {
         }
 
         // ✅ Active, unexpired subscription to THIS program only
-        setHasAccess(await hasActiveProgramSubscription());
+        const isSubscribed = await hasActiveProgramSubscription();
+        setHasAccess(isSubscribed);
         // Only relevant when access is being denied — did this user ever
         // have a trial subscription (one per user, ever) for this program?
-        if (!activeSubscription) {
-          setHadTrial(subscriptions.some((sub) => sub.isTrial));
+        if (!isSubscribed) {
+          setHadTrial(await hasUsedProgramTrial());
         }
       } catch (err) {
         console.error(

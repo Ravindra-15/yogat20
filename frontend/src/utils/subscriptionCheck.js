@@ -23,3 +23,17 @@ export const hasActiveProgramSubscription = async () => {
     return false; // soft fail — treat as no subscription
   }
 };
+
+// Returns true if a free trial for PROGRAM_ID was ever granted, even an expired one
+export const hasUsedProgramTrial = async () => {
+  try {
+    const data = await getMySubscriptions();
+    const subscriptions = data?.subscriptions || [];
+
+    return subscriptions.some(
+      (sub) => sub.programId === PROGRAM_ID && sub.isTrial
+    );
+  } catch {
+    return false; // soft fail — treat as no trial
+  }
+};
