@@ -38,7 +38,7 @@ import Modal from "../../../../components/common/Modal";
 import RescheduleModal from "./RescheduleModal";
 import AppointmentReports from "./AppointmentReports";
 
-const PROBLEM_MAX = 200; // max characters for problem description
+const PROBLEM_MAX = 500; // max characters for problem description
 
 // 🏷️ Proper display names for the "booked under" program label
 const PROGRAM_NAMES = {

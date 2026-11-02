@@ -45,6 +45,7 @@ export default function MyProfile() {
   const { logout } = useAuth();
 
   const [user, setUser] = useState(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [pastAppointments, setPastAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
@@ -68,6 +69,22 @@ export default function MyProfile() {
       // message made it impossible to tell why from a bug report alone.
       console.error("[MyProfile] fetchMyProfile failed:", err?.response?.status, err?.response?.data || err.message);
       toast.error(err?.response?.data?.message || `Failed to load profile${err?.response?.status ? ` (${err.response.status})` : ""}`);
+    }
+  };
+
+  // ============================================
+  // 📥 LOAD UPCOMING APPOINTMENTS
+  // ============================================
+  const loadUpcomingAppointments = async () => {
+    try {
+      const res = await listMyAppointments({
+        bucket: "upcoming",
+        limit: 10,
+      });
+
+      setUpcomingAppointments(res?.appointments || []);
+    } catch {
+      // soft fail
     }
   };
 
@@ -96,6 +113,7 @@ export default function MyProfile() {
 
       await Promise.all([
         loadProfile(),
+        loadUpcomingAppointments(),
         loadPastAppointments(),
       ]);
 
@@ -403,6 +421,39 @@ export default function MyProfile() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* ============================================ */}
+        {/* 🗓️ UPCOMING APPOINTMENTS */}
+        {/* ============================================ */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6 sm:p-8 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-5">
+            <h3 className="text-base font-bold text-gray-800">
+              Upcoming Appointments
+            </h3>
+            {upcomingAppointments.length > 0 && (
+              <button
+                type="button"
+                onClick={() => navigate("/my-appointments")}
+                className="text-sm font-semibold text-orange-500 hover:text-orange-600 shrink-0 transition-colors"
+              >
+                View All
+              </button>
+            )}
+          </div>
+
+          {upcomingAppointments.length === 0 ? (
+            <p className="text-sm text-gray-400">No upcoming appointments.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {upcomingAppointments.map((apt) => (
+                <PastAppointmentCard
+                  key={apt._id || apt.id}
+                  appointment={apt}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ============================================ */}
