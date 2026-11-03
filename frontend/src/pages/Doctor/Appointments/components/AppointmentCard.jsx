@@ -27,6 +27,7 @@ import {
   markAppointmentNoShow,
 } from "../../../../services/doctorAppointmentService";
 import PatientReports from "./PatientReports";
+import DoctorNotes from "./DoctorNotes";
 import CancelReasonModal from "./CancelReasonModal";
 
 // ============================================
@@ -388,6 +389,9 @@ const AppointmentCard = ({ appointment, onUpdated }) => {
 
         {/* 📄 PATIENT REPORTS */}
         <PatientReports appointment={appointment} />
+
+        {/* 🗒️ DOCTOR NOTES (private, after the consultation) */}
+        <DoctorNotes appointment={appointment} onUpdated={onUpdated} />
 
         {/* ✅ COMPLETE + ❌ CANCEL BUTTONS */}
         <div className="mt-3 flex flex-wrap gap-2">
