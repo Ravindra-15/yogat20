@@ -42,9 +42,9 @@ import useMyBodyProfile from "../../../hooks/useMyBodyProfile";
 import useMedicalReports from "../../../hooks/useMedicalReports";
 import ReportList from "../../../components/customer/MedicalReports/ReportList";
 import { useCurrency } from "../../../hooks/useCurrency";
+import { useConsultationFee } from "../../../hooks/useConsultationFee";
 import { useProfileGate } from "../../../hooks/useProfileGate";
 
-const BOOKING_FEE = 20;
 const PROBLEM_MAX = 500; // max characters allowed for problem description
 const PLATFORM = "yogat20"; // current program identifier (change per subprogram)
 
@@ -66,7 +66,10 @@ const Checkout = () => {
   // (backend consumes planFreeConsults first, then freeAppointmentCredits)
   const isFreeBooking = planConsults > 0 || freeCredits > 0;
   const usingPlanConsult = planConsults > 0; // plan benefit takes priority
-  const fee = isFreeBooking ? 0 : BOOKING_FEE; // USD
+  // 💵 This patient's fee (USD) — admin sets it per country; the server
+  // charges the same amount, this is just for display
+  const { fee: bookingFee, ready: feeReady } = useConsultationFee();
+  const fee = isFreeBooking ? 0 : bookingFee; // USD
 
   // 💱 Show the fee in the customer's own currency (from their profile
   // country). Display only — PayPal still charges the USD amount.
@@ -285,7 +288,7 @@ const Checkout = () => {
           {/* ============================================ */}
           {/* 📋 CHECKOUT BODY                              */}
           {/* ============================================ */}
-          {loading || !currencyReady ? (
+          {loading || !currencyReady || !feeReady ? (
             // also wait for the currency, so the fee doesn't flash $20 first
             <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse h-72" />
           ) : error ? (
@@ -489,7 +492,7 @@ const Checkout = () => {
                 ) : isFreeBooking ? (
                   usingPlanConsult ? "Book Free Consultation" : "Confirm Free Booking"
                 ) : (
-                  `Pay ${convert(BOOKING_FEE)} with PayPal`
+                  `Pay ${convert(bookingFee)} with PayPal`
                 )}
               </button>
 
@@ -503,8 +506,8 @@ const Checkout = () => {
               {!isFreeBooking && showsLocalCurrency && (
                 <p className="text-xs text-gray-500 text-center leading-relaxed">
                   PayPal will charge{" "}
-                  <span className="font-semibold">${BOOKING_FEE.toFixed(2)} USD</span>{" "}
-                  (≈ {convert(BOOKING_FEE)}). Your bank or PayPal may apply its
+                  <span className="font-semibold">${bookingFee.toFixed(2)} USD</span>{" "}
+                  (≈ {convert(bookingFee)}). Your bank or PayPal may apply its
                   own conversion rate.
                 </p>
               )}
