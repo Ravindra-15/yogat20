@@ -78,6 +78,7 @@ import CompleteProfile from "./pages/Doctor/CompleteProfile/CompleteProfile";
 import DoctorDashboard from "./pages/Doctor/Dashboard/Dashboard";
 import Appointments from "./pages/Doctor/Appointments/Appointments";
 import PatientProgress from "./pages/Doctor/Appointments/PatientProgress";
+import PatientFeedback from "./pages/Doctor/Appointments/PatientFeedback";
 import MyPatients from "./pages/Doctor/MyPatients/MyPatients";
 import AvailabilityManager from "./pages/Doctor/AvailabilityManager/AvailabilityManager";
 import Notifications from "./pages/Doctor/Notifications/Notifications";
@@ -315,6 +316,7 @@ function App() {
                   <Route path="dashboard" element={<DoctorDashboard />} />
                   <Route path="appointments" element={<Appointments />} />
                   <Route path="appointments/:id/progress" element={<PatientProgress />} />
+                  <Route path="appointments/feedback" element={<PatientFeedback />} />
                   <Route path="my-patients" element={<MyPatients />} />
                   <Route
                     path="availability"
