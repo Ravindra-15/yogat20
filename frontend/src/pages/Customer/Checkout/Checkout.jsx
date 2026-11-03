@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
 import ConsultationCard from "./components/ConsultationCard";
+import BookingRulesNote from "./components/BookingRulesNote";
 import Modal from "../../../components/common/Modal";
 
 import { getPublicDoctor } from "../../../services/customerDoctorService";
@@ -307,6 +308,9 @@ const Checkout = () => {
                 feeLabel={convert(fee)}
                 showTotals
               />
+
+              {/* 📋 Reschedule / cancellation rules for this slot */}
+              <BookingRulesNote scheduledAt={intent?.scheduledAt} />
 
               {/* ============================================ */}
               {/* 📝 PROBLEM DESCRIPTION                        */}
