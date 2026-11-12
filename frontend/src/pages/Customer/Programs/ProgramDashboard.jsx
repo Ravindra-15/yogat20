@@ -219,6 +219,7 @@ export default function ProgramDashboard() {
   // 📈 inline Add-Progress expand state
   const [showProgress, setShowProgress] = useState(false);
   const topRef = useRef(null); // scroll target after saving
+  const consultRef = useRef(null); // "Your Free Consultations" section (top chip scrolls here)
   const progressRef = useRef(null); // scroll target when auto-opening from navbar
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -664,6 +665,24 @@ export default function ProgramDashboard() {
                 <p className="text-gray-400 text-sm mt-1">
                   Let's track your wellness journey for today
                 </p>
+                {/* 🩺 free consultations count — same count as the section below; tap to jump there */}
+                {consultCards.length > 0 && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => consultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      className="inline-flex items-center gap-2 max-w-full rounded-full border border-orange-100 hover:border-orange-300 bg-orange-50 pl-1.5 pr-3.5 py-1.5 text-xs sm:text-sm font-semibold text-orange-700 text-left transition-colors"
+                    >
+                      <span className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
+                        <Stethoscope size={13} className="text-white" />
+                      </span>
+                      <span>
+                        {bookableCount} free consultation{bookableCount === 1 ? "" : "s"} available now
+                        <span className="font-medium opacity-70"> · View</span>
+                      </span>
+                    </button>
+                  </div>
+                )}
                 {/* 📊 ring shown here on mobile only (below greeting) */}
                 <div className="sm:hidden mt-5 flex justify-center">
                   <ProgressRing />
@@ -830,7 +849,7 @@ export default function ProgramDashboard() {
           {/* ══════════════════════════════════════════════════ */}
           {/* 🩺 FREE DOCTOR CONSULTATIONS (per-card system)     */}
           {/* ══════════════════════════════════════════════════ */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+          <div ref={consultRef} className="scroll-mt-24 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-7 h-7 bg-orange-50 rounded-lg flex items-center justify-center">
                 <Stethoscope size={15} className="text-orange-500" />
