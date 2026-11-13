@@ -43,6 +43,13 @@ import useMedicalReports from "../../../hooks/useMedicalReports";
 import ReportList from "../../../components/customer/MedicalReports/ReportList";
 import { useConsultationFee, formatFee } from "../../../hooks/useConsultationFee";
 import { useProfileGate } from "../../../hooks/useProfileGate";
+import CasePicker from "../../../components/customer/Cases/CasePicker";
+import {
+  fetchMyCases,
+  clearBookingCase,
+  BOOKING_CASE_KEY,
+  BOOKING_CASE_TITLE_KEY,
+} from "../../../services/customerCaseService";
 
 const PROBLEM_MAX = 500; // max characters allowed for problem description
 const PLATFORM = "yogat20"; // current program identifier (change per subprogram)
@@ -67,13 +74,43 @@ const Checkout = () => {
   const usingPlanConsult = planConsults > 0; // plan benefit takes priority
   // 💵 This patient's fee (USD) — admin sets it per country; the server
   // charges the same amount, this is just for display
-  const {
-    fee: bookingFee,
-    label: bookingFeeLabel,
-    usdLabel: bookingFeeUsd,
-    currency: feeCurrency,
-    ready: feeReady,
-  } = useConsultationFee();
+  const baseFee = useConsultationFee();
+
+  // 🗂️ CASE — a new problem (starts a new case) or a follow-up in one of the
+  // patient's open cases (follow-up price). The server re-checks both.
+  const [caseData, setCaseData] = useState(null); // { cases, prices }
+  const [caseId, setCaseIdState] = useState(() => sessionStorage.getItem(BOOKING_CASE_KEY) || "");
+  const [caseTitle, setCaseTitleState] = useState(() => sessionStorage.getItem(BOOKING_CASE_TITLE_KEY) || "");
+  const setCaseId = (id) => {
+    setCaseIdState(id);
+    if (id) sessionStorage.setItem(BOOKING_CASE_KEY, id);
+    else sessionStorage.removeItem(BOOKING_CASE_KEY);
+  };
+  const setCaseTitle = (title) => {
+    setCaseTitleState(title);
+    sessionStorage.setItem(BOOKING_CASE_TITLE_KEY, title);
+  };
+  const loadCases = async () => {
+    try {
+      setCaseData(await fetchMyCases());
+    } catch {
+      setCaseData({ cases: [], prices: null }); // soft fail — books as a new problem
+    }
+  };
+  useEffect(() => {
+    if (isCustomerLoggedIn()) loadCases();
+    else setCaseData({ cases: [], prices: null });
+  }, []);
+  const selectedCase =
+    caseData?.cases.find((c) => c._id === caseId && c.status === "open" && c.booking?.canBook) || null;
+  const followUpQuote =
+    selectedCase?.booking?.state === "follow_up" ? caseData?.prices?.followUpFee || null : null;
+
+  const bookingFee = followUpQuote ? followUpQuote.fee : baseFee.fee;
+  const bookingFeeLabel = followUpQuote ? formatFee(followUpQuote.localFee, followUpQuote.currency) : baseFee.label;
+  const bookingFeeUsd = followUpQuote ? formatFee(followUpQuote.fee, "USD") : baseFee.usdLabel;
+  const feeCurrency = followUpQuote ? followUpQuote.currency : baseFee.currency;
+  const feeReady = baseFee.ready && caseData !== null; // wait for both, so the price doesn't flash
   const fee = isFreeBooking ? 0 : bookingFee; // USD
 
   // 💱 The fee in the patient's own currency, exactly as the admin set it
@@ -222,6 +259,8 @@ const Checkout = () => {
         scheduledAt: intent.scheduledAt,
         notes: problem || undefined,
         reportIds: medical.reports.map((r) => r._id),
+        caseId: selectedCase?._id || undefined,
+        caseTitle: !selectedCase && caseTitle.trim() ? caseTitle.trim() : undefined,
         platform: PLATFORM,
         returnUrl: `${origin}/checkout/paypal/return`,
         cancelUrl: `${origin}/checkout?paypalCancelled=1`,
@@ -236,11 +275,14 @@ const Checkout = () => {
           scheduledAt: intent.scheduledAt,
           notes: problem || undefined,
         reportIds: medical.reports.map((r) => r._id),
+        caseId: selectedCase?._id || undefined,
+        caseTitle: !selectedCase && caseTitle.trim() ? caseTitle.trim() : undefined,
           platform: PLATFORM,
         });
         if (!isMountedRef.current) return;
         sessionStorage.removeItem("bookingIntent");
         sessionStorage.removeItem("bookingProblem");
+        clearBookingCase();
         toast.success("Appointment confirmed!");
         navigate(`/booking/confirmation/${booked.appointment._id}`, { replace: true });
         return;
@@ -253,6 +295,8 @@ const Checkout = () => {
     } catch (err) {
       if (!isMountedRef.current) return;
       const msg = getPaymentErrorMessage(err, "Couldn't start payment. Please try again.");
+      // 🗂️ the case changed meanwhile (closed / booked in another tab) → refresh the choices
+      if (/^CASE_/.test(err?.response?.data?.code || "")) loadCases();
       toast.error(err?.response ? msg : `${msg} You haven't been charged.`);
     } finally {
       if (isMountedRef.current && !redirecting) setPaying(false);
@@ -318,6 +362,17 @@ const Checkout = () => {
 
               {/* 📋 Reschedule / cancellation rules for this slot */}
               <BookingRulesNote scheduledAt={intent?.scheduledAt} />
+
+              {/* 🗂️ New problem or a follow-up in an existing case */}
+              <CasePicker
+                cases={caseData?.cases || []}
+                prices={caseData?.prices}
+                value={selectedCase ? caseId : ""}
+                onChange={setCaseId}
+                caseTitle={caseTitle}
+                onTitleChange={setCaseTitle}
+                isFree={fee === 0}
+              />
 
               {/* ============================================ */}
               {/* 📝 PROBLEM DESCRIPTION                        */}
