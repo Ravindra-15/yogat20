@@ -24,6 +24,7 @@ import HabitTrackerForm from "./components/HabitTrackerForm";
 import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
+import ReferAndEarnSection from "../Landing/sections/ReferAndEarnSection";
 import {
   getCurrentVideo,
   markVideoComplete,
@@ -1053,6 +1054,11 @@ export default function ProgramDashboard() {
               </>
             )}
           </div>
+
+          {/* ══════════════════════════════════════════════════ */}
+          {/* 🎁 REFER & EARN — same section as the landing page */}
+          {/* ══════════════════════════════════════════════════ */}
+          <ReferAndEarnSection embedded />
           </div>
       </main>
 
