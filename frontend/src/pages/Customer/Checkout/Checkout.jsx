@@ -13,8 +13,6 @@ import {
   Gift,
   FileText,
   Pencil,
-  HeartPulse,
-  ChevronRight,
   Paperclip,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -39,6 +37,7 @@ import {
 import { fetchMyProfile } from "../../../services/customerProfileService";
 import { fetchMyFreeConsultCards } from "../../../services/customerFreeConsultService";
 import useMyBodyProfile from "../../../hooks/useMyBodyProfile";
+import { BodyProfileCheckoutRow } from "../../../components/customer/BodyProfile/BodyProfileProgress";
 import useMedicalReports from "../../../hooks/useMedicalReports";
 import ReportList from "../../../components/customer/MedicalReports/ReportList";
 import { useConsultationFee, formatFee } from "../../../hooks/useConsultationFee";
@@ -118,8 +117,11 @@ const Checkout = () => {
   const showsLocalCurrency = feeCurrency !== "USD";
   const feeLabel = fee === 0 ? formatFee(0, feeCurrency) : bookingFeeLabel;
   // body profile completion status — decides which button to show
-  const { isComplete: bodyProfileComplete, loading: bodyProfileLoading } =
-    useMyBodyProfile();
+  const {
+    profile: bodyProfile,
+    loading: bodyProfileLoading,
+    error: bodyProfileError,
+  } = useMyBodyProfile();
 
   // 📝 Problem-description state
   // load saved problem from sessionStorage so it survives refresh + navigation
@@ -442,57 +444,11 @@ const Checkout = () => {
               {/* ============================================ */}
               {/* 🩺 BODY PROFILE PROMPT                        */}
               {/* ============================================ */}
-              {bodyProfileLoading ? (
-                // skeleton — avoids flashing wrong state before status loads
-                <div className="w-full h-[60px] rounded-2xl bg-gray-100 animate-pulse" />
-              ) : bodyProfileComplete ? (
-                // already filled — calm "view/edit" style
-                <button
-                  type="button"
-                  onClick={() => navigate("/body-profile?from=checkout")}
-                  className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-4 rounded-2xl border border-gray-100 bg-white hover:border-orange-300 transition-colors"
-                >
-                  <span className="flex items-center gap-2.5 text-left">
-                    <HeartPulse
-                      size={18}
-                      className="text-emerald-500 flex-shrink-0"
-                    />
-                    <span className="text-sm font-semibold text-gray-800">
-                      View / Edit Your Body Profile
-                    </span>
-                  </span>
-                  <ChevronRight
-                    size={16}
-                    className="text-gray-400 flex-shrink-0"
-                  />
-                </button>
-              ) : (
-                // not filled — highlighted prompt to complete
-                <button
-                  type="button"
-                  onClick={() => navigate("/body-profile?from=checkout")}
-                  className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-4 rounded-2xl border border-orange-200 bg-orange-50 hover:bg-orange-100 transition-colors"
-                >
-                  <span className="flex items-center gap-2.5 text-left">
-                    <HeartPulse
-                      size={18}
-                      className="text-orange-500 flex-shrink-0"
-                    />
-                    <span>
-                      <span className="block text-sm font-bold text-orange-800">
-                        Complete Your Body Profile
-                      </span>
-                      <span className="block text-[11px] text-orange-700 mt-0.5">
-                        Helps your doctor personalize your care
-                      </span>
-                    </span>
-                  </span>
-                  <ChevronRight
-                    size={16}
-                    className="text-orange-500 flex-shrink-0"
-                  />
-                </button>
-              )}
+              <BodyProfileCheckoutRow
+                profile={bodyProfile}
+                loading={bodyProfileLoading}
+                error={bodyProfileError}
+              />
 
               {isFreeBooking && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
