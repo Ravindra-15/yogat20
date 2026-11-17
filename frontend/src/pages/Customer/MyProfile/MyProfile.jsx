@@ -356,7 +356,8 @@ export default function MyProfile() {
                   <span className="flex items-center gap-1.5">
                     <MapPin size={14} className="text-gray-400 shrink-0" />
                     {user?.city
-                      ? [user.city, user.state, user.country].filter(Boolean).join(", ")
+                      ? [user.city, user.state, user.country].filter(Boolean).join(", ") +
+                        (user.pincode ? ` - ${user.pincode}` : "")
                       : "—"}
                   </span>
 
@@ -428,7 +429,7 @@ export default function MyProfile() {
         {/* ============================================ */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6 sm:p-8 mb-6">
           <div className="flex items-center justify-between gap-3 mb-5">
-            <h3 className="text-base font-bold text-gray-800">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800">
               Upcoming Appointments
             </h3>
             {upcomingAppointments.length > 0 && (
@@ -460,7 +461,7 @@ export default function MyProfile() {
         {/* 📅 PAST APPOINTMENTS */}
         {/* ============================================ */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(16,24,40,0.04)] p-6 sm:p-8 mb-6">
-          <h3 className="text-base font-bold text-gray-800 mb-5">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-5">
             Past Appointments
           </h3>
 
