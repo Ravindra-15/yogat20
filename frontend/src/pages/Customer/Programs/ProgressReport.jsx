@@ -9,9 +9,10 @@
  *  - period accordion: current period pinned to the top, then previous
  *    ones going backward; only 3 shown at first, "Show more" reveals the
  *    rest back to period 1
- *  - month-priced plans (yogat20) get "Month" periods with a 30-day grid;
- *    week-priced plans (diabmukt/mommyfit/slimfitter) get "Week" periods
- *    (7-day grid) grouped 4-to-a-month under the same accordion shape
+ *  - month-priced plans (yogat20) get "Month" periods, week-priced plans
+ *    (diabmukt/mommyfit/slimfitter) get "Week" periods grouped 4-to-a-month
+ *  - inside each period: a swipeable day-by-day bar chart (DayBarChart) —
+ *    7 days per page, Overall + one tab per tracker, tap a day for details
  *
  * ✅ COPY-PASTE SAFE: programId comes from the URL.
  * Route: /programs/:id/progress-report
@@ -26,13 +27,10 @@ import toast from "react-hot-toast";
 import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
 import { getProgressReport } from "../../../services/habitProgressService";
+import DayBarChart from "./components/DayBarChart";
 
-// 🎨 Day-block colors by verdict
-const BLOCK_COLORS = {
-  green: "#22C55E",
-  red: "#EF4444",
-  gray: "#E5E7EB",
-};
+// 🎨 Program theme colour for the chart (tabs, selected day, today)
+const CHART_ACCENT = "#F97316";
 
 const INITIAL_VISIBLE_COUNT = 3;
 
@@ -75,25 +73,11 @@ const HabitStatsGrid = ({ stats, size = "md" }) => (
   </div>
 );
 
-// 🗓️ Day-block grid + "Period Metrics" section — shared by a month period
+// 📊 Day bar chart + "Period Metrics" section — shared by a month period
 // and a week period, they're the same shape.
-const PeriodBody = ({ days, habitStats }) => (
-  <div className="px-5 pb-5">
-    <div className="grid grid-cols-7 sm:grid-cols-10 gap-1.5 sm:gap-2 mb-5">
-      {days.map((day) => (
-        <div
-          key={day.dayNumber}
-          title={day.date}
-          className="aspect-square rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-semibold"
-          style={{
-            backgroundColor: BLOCK_COLORS[day.color] || BLOCK_COLORS.gray,
-            color: day.color === "gray" ? "#9CA3AF" : "#FFFFFF",
-          }}
-        >
-          {day.dayNumber}
-        </div>
-      ))}
-    </div>
+const PeriodBody = ({ days, habitStats, chart }) => (
+  <div className="px-4 sm:px-5 pb-5">
+    <DayBarChart days={days} {...chart} />
 
     <div className="flex items-center gap-1.5 mb-3">
       <p className="text-xs font-bold text-[#374151]">Period Metrics</p>
@@ -115,6 +99,7 @@ export default function ProgressReport() {
   const [openPeriod, setOpenPeriod] = useState(null); // open monthNumber (top-level)
   const [openWeek, setOpenWeek] = useState(null); // open weekNumber, week-type only
   const [showAll, setShowAll] = useState(false);
+  const [chartTab, setChartTab] = useState("overall"); // shared by every period's chart
 
   // 📥 Load the progress report
   const loadReport = useCallback(async () => {
@@ -151,6 +136,9 @@ export default function ProgressReport() {
   useEffect(() => {
     loadReport();
   }, [loadReport]);
+
+  // 📊 Same chart settings for every month / week box
+  const chart = { habits, tab: chartTab, onTab: setChartTab, accent: CHART_ACCENT };
 
   // 🔀 Expand / collapse the top-level accordion item
   const togglePeriod = (monthNumber, group) => {
@@ -272,7 +260,7 @@ export default function ProgressReport() {
                           </button>
 
                           {isOpen && periodType === "month" && (
-                            <PeriodBody days={group.days} habitStats={group.habitStats} />
+                            <PeriodBody days={group.days} habitStats={group.habitStats} chart={chart} />
                           )}
 
                           {isOpen && periodType === "week" && (
@@ -305,7 +293,7 @@ export default function ProgressReport() {
                                     </button>
                                     {isWeekOpen && (
                                       <div className="bg-white">
-                                        <PeriodBody days={week.days} habitStats={week.habitStats} />
+                                        <PeriodBody days={week.days} habitStats={week.habitStats} chart={chart} />
                                       </div>
                                     )}
                                   </div>
@@ -335,37 +323,6 @@ export default function ProgressReport() {
                     )}
                   </div>
                 )}
-
-                {/* Legend */}
-                <div className="flex items-center justify-center gap-4 mt-5">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: BLOCK_COLORS.green }}
-                    />
-                    <span className="text-[11px] text-[#6B7280]">
-                      Goal met
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: BLOCK_COLORS.red }}
-                    />
-                    <span className="text-[11px] text-[#6B7280]">
-                      Below goal
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-3 h-3 rounded"
-                      style={{ backgroundColor: BLOCK_COLORS.gray }}
-                    />
-                    <span className="text-[11px] text-[#6B7280]">
-                      Not logged
-                    </span>
-                  </div>
-                </div>
               </div>
             </>
           )}
