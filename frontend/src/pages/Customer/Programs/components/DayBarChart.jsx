@@ -249,11 +249,13 @@ export default function DayBarChart({ days = [], habits = [], tab = "overall", o
         )}
       </div>
 
-      {/* 📊 Swipeable pages of 7 bars */}
+      {/* 📊 Swipeable pages of 7 bars
+          (pt-3 = headroom: a horizontal scroller also clips vertically, so
+          without it a 100% bar's selected ring / the goal label get cut off) */}
       <div
         ref={scrollerRef}
         onScroll={onScroll}
-        className="flex overflow-x-auto snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex overflow-x-auto snap-x snap-mandatory overscroll-x-contain pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label="Daily progress — swipe for earlier days"
       >
         {pages.map((pd, pi) => (
@@ -266,7 +268,7 @@ export default function DayBarChart({ days = [], habits = [], tab = "overall", o
                   </span>
                 </div>
               )}
-              <div className="absolute inset-0 grid grid-cols-7 gap-1.5 sm:gap-3 items-end px-0.5">
+              <div className="absolute inset-0 grid grid-cols-7 gap-1.5 sm:gap-3 items-end px-1">
                 {Array.from({ length: PAGE }).map((_, i) => {
                   const d = pd[i];
                   if (!d) return <div key={i} />;
@@ -305,7 +307,7 @@ export default function DayBarChart({ days = [], habits = [], tab = "overall", o
               </div>
             </div>
             {/* day labels */}
-            <div className="grid grid-cols-7 gap-1.5 sm:gap-3 px-0.5 pt-1.5">
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-3 px-1 pt-1.5">
               {Array.from({ length: PAGE }).map((_, i) => {
                 const d = pd[i];
                 if (!d) return <div key={i} />;
