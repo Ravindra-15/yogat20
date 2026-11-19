@@ -19,7 +19,7 @@ export default function HealingCTASection() {
   };
 
   return (
-    <section className="py-12 sm:py-14 lg:py-20 bg-white">
+    <section className="py-12 sm:py-14 lg:py-20 bg-white overflow-x-clip">
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Wrapper with overflow visible so doctors can poke above the card */}
