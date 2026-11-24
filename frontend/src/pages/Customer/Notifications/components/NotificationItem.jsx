@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   CreditCard,
   AlertCircle,
-  Bell,
+  Bell, MessageSquare,
   Calendar,
   Sparkles,
   Clock,
@@ -50,6 +50,21 @@ const typeMeta = {
     icon: Clock,
     bg: "bg-orange-50",
     color: "text-orange-500",
+  },
+  support_reply: {
+    icon: MessageSquare,
+    bg: "bg-orange-50",
+    color: "text-orange-500",
+  },
+  support_resolved: {
+    icon: CheckCircle2,
+    bg: "bg-green-50",
+    color: "text-green-500",
+  },
+  support_reminder: {
+    icon: MessageSquare,
+    bg: "bg-amber-50",
+    color: "text-amber-500",
   },
   general: {
     icon: Bell,
