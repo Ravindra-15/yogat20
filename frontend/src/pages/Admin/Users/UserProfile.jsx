@@ -16,7 +16,7 @@ import BodyProfileTab from "./components/BodyProfileTab";
 import ConsultationsTab from "./components/ConsultationsTab";
 
 const TABS = [
-  { id: "body", label: "27-Point Body Profile", icon: ClipboardList },
+  { id: "body", label: "Body Profile", icon: ClipboardList },
   { id: "consultations", label: "Consultations", icon: MessageSquare },
 ];
 
