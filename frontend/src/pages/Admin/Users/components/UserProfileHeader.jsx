@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { User, Power, Loader2 } from "lucide-react";
 
 import { buildUserDisplayId, toggleUserStatus } from "../../../../services/userService";
+import { confirmDialog } from "../../../../utils/confirmDialog";
 
 // ============================================
 // 🛡️ Mask helpers
@@ -38,7 +39,16 @@ const UserProfileHeader = ({ user, bodyProfile, onUserUpdated }) => {
   const handleToggle = async () => {
     if (toggling) return;
     const action = user.isActive ? "deactivate" : "activate";
-    if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+    const ok = await confirmDialog({
+      title: `${action === "deactivate" ? "Deactivate" : "Activate"} this user?`,
+      message:
+        action === "deactivate"
+          ? "They lose access to the platform until you activate them again."
+          : "They get access to the platform again.",
+      confirmLabel: action === "deactivate" ? "Deactivate" : "Activate",
+      tone: action === "deactivate" ? "danger" : "info",
+    });
+    if (!ok) return;
 
     try {
       setToggling(true);
