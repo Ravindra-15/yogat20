@@ -14,6 +14,8 @@ import { getSubscriptionRedirect } from "../../../utils/subscriptionGuard";
 import { fetchMyReferrer } from "../../../services/customerReferralService";
 import { getPaymentErrorMessage } from "../../../utils/paymentErrors";
 import { useProfileGate } from "../../../hooks/useProfileGate";
+import useLegalContent from "../../../hooks/useLegalContent";
+import { LegalNotices } from "../../../components/customer/legal/LegalText";
 
 // THEME-START
 const THEME = {
@@ -42,7 +44,9 @@ const readSavedPlan = (programId) => {
   }
 };
 
+
 export default function ProgramCheckout() {
+  const legal = useLegalContent();
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -340,6 +344,8 @@ export default function ProgramCheckout() {
                 (≈ {convert(price)}). Your bank or PayPal may apply its own conversion rate.
               </p>
             )}
+
+            <LegalNotices notices={legal.noticesAt("program_checkout")} brand={legal.content.brand} className="mt-4" />
 
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-4">
               <span className="flex items-center gap-1 text-xs text-gray-400">

@@ -20,6 +20,8 @@ import CustomerNavbar from "../../../components/customer/layout/CustomerNavbar";
 import CustomerFooter from "../../../components/customer/layout/CustomerFooter";
 import ConsultationCard, { FeeSummary } from "./components/ConsultationCard";
 import BookingRulesNote from "./components/BookingRulesNote";
+import useLegalContent from "../../../hooks/useLegalContent";
+import { LegalInline, LegalNotices } from "../../../components/customer/legal/LegalText";
 
 import { getPublicDoctor } from "../../../services/customerDoctorService";
 import {
@@ -52,6 +54,8 @@ const PROBLEM_MAX = 500; // max characters allowed for problem description
 const PLATFORM = "yogat20"; // current program identifier (change per subprogram)
 
 const Checkout = () => {
+  const legal = useLegalContent();
+  const consent = legal.notice("checkout_consent");
   const navigate = useNavigate();
   const { requireCompleteProfile, profileGateModal } = useProfileGate();
   const location = useLocation();
@@ -529,10 +533,13 @@ const Checkout = () => {
                 </p>
               )}
 
-              <p className="text-[11px] text-gray-400 text-center">
-                By proceeding, you agree to Zealtho's Terms of Service and
-                Privacy Policy.
-              </p>
+              <LegalNotices notices={legal.noticesAt("booking_checkout")} brand={legal.content.brand} />
+
+              {consent && (
+                <p className="text-[11px] text-gray-400 text-center">
+                  <LegalInline text={consent.text} brand={legal.content.brand} />
+                </p>
+              )}
             </>
           )}
         </div>

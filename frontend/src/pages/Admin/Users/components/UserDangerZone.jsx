@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { AlertTriangle, Power, Loader2 } from "lucide-react";
 
 import { toggleUserStatus } from "../../../../services/userService";
+import { confirmDialog } from "../../../../utils/confirmDialog";
 
 const UserDangerZone = ({ user, onUserUpdated }) => {
   const [toggling, setToggling] = useState(false);
@@ -19,11 +20,21 @@ const UserDangerZone = ({ user, onUserUpdated }) => {
     if (toggling) return;
 
     const action = user.isActive ? "deactivate" : "activate";
-    const confirmMsg = user.isActive
-      ? "Deactivate this user? They will lose access to the platform until reactivated."
-      : "Activate this user? They will regain access to the platform.";
-
-    if (!window.confirm(confirmMsg)) return;
+    const ok = await confirmDialog(
+      user.isActive
+        ? {
+            title: "Deactivate this user?",
+            message: "They lose access to the platform until you activate them again.",
+            confirmLabel: "Deactivate",
+            tone: "danger",
+          }
+        : {
+            title: "Activate this user?",
+            message: "They get access to the platform again.",
+            confirmLabel: "Activate",
+          }
+    );
+    if (!ok) return;
 
     try {
       setToggling(true);

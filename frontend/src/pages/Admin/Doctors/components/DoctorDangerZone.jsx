@@ -26,6 +26,7 @@ import {
   toggleDoctorStatus,
 } from "../../../../services/doctorService";
 import CredentialsModal from "./CredentialsModal";
+import { confirmDialog } from "../../../../utils/confirmDialog";
 
 const DoctorDangerZone = ({ doctor, onStatusChange, onPasswordReset }) => {
   const [resetting, setResetting] = useState(false);
@@ -40,7 +41,9 @@ const DoctorDangerZone = ({ doctor, onStatusChange, onPasswordReset }) => {
 
     const confirmMessage = `Reset password for ${doctor.fullName}?\n\nThe doctor's current password will become invalid immediately. They will need to use the new temporary password to log in.`;
 
-    if (!window.confirm(confirmMessage)) return;
+    const [confirmTitle, confirmBody] = confirmMessage.split("\n\n");
+    const ok = await confirmDialog({ title: confirmTitle, message: confirmBody, confirmLabel: "Reset password", tone: "warning" });
+    if (!ok) return;
 
     try {
       setResetting(true);
@@ -77,7 +80,14 @@ const DoctorDangerZone = ({ doctor, onStatusChange, onPasswordReset }) => {
       ? `Deactivate ${doctor.fullName}?\n\nThe doctor will lose access to their account immediately. You can reactivate them later.`
       : `Activate ${doctor.fullName}?\n\nThe doctor will regain access to their account.`;
 
-    if (!window.confirm(confirmMessage)) return;
+    const [confirmTitle, confirmBody] = confirmMessage.split("\n\n");
+    const ok = await confirmDialog({
+      title: confirmTitle,
+      message: confirmBody,
+      confirmLabel: willDeactivate ? "Deactivate" : "Activate",
+      tone: willDeactivate ? "danger" : "info",
+    });
+    if (!ok) return;
 
     try {
       setToggling(true);
